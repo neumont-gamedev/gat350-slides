@@ -832,7 +832,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 10:20 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 10:42 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -1902,11 +1902,28 @@ function litDemo(cv,opt){
   const dt_=svgEl("circle",{r:10,fill:Y,stroke:"#0d0d0f","stroke-width":3},svg);
   const ring=svgEl("circle",{r:20,fill:"none",stroke:Y,"stroke-width":2,opacity:.6},svg);
   textSvg(svg,"camera looks down −Z (glm’s default), so front = −Z",380,OY+C*3+50,MUTE,15,"middle");
+  // 3D view of the direction inside a cube, in the empty top-left cell of the net
+  const g3=svgEl("g",{},svg), CX=OX+18, CY=OY+44, SZ=56, YA=-.6, PA=.42;
+  const P3=([x,y,z])=>{ const x1=x*Math.cos(YA)+z*Math.sin(YA), z1=-x*Math.sin(YA)+z*Math.cos(YA), y2=y*Math.cos(PA)-z1*Math.sin(PA), z2=y*Math.sin(PA)+z1*Math.cos(PA); return [CX+x1*SZ,CY-y2*SZ,z2]; };
+  const CORN=[]; for(let i=0;i<8;i++) CORN.push([i&1?1:-1,i&2?1:-1,i&4?1:-1]);
+  const EDGES=[]; for(let i=0;i<8;i++) for(const b of [1,2,4]) if(!(i&b)) EDGES.push([i,i|b]);
+  function draw3(q){ g3.innerHTML=""; const P=CORN.map(P3), far=P.reduce((m,p,i)=>p[2]<P[m][2]?i:m,0), f=q.f;
+    // the face the direction hits
+    const fc=CORN.map((c,i)=>i).filter(i=>CORN[i][q.major]===Math.sign(f.n[q.major])), ord=[0,1,3,2].map(j=>fc[j]);
+    svgEl("polygon",{points:ord.map(i=>P[i][0]+","+P[i][1]).join(" "),fill:"rgba(255,194,14,.16)",stroke:Y,"stroke-width":1.5},g3);
+    EDGES.forEach(([a,b])=>{ const hid=a===far||b===far; svgEl("line",{x1:P[a][0],y1:P[a][1],x2:P[b][0],y2:P[b][1],stroke:hid?"rgba(155,152,143,.45)":MUTE,"stroke-width":1.5,"stroke-dasharray":hid?"3 4":""},g3); });
+    // axes
+    [[1,0,0,RED,"+X"],[0,1,0,GREEN,"+Y"],[0,0,1,BLUE,"+Z"]].forEach(([x,y,z,c,t])=>{ const a=P3([0,0,0]), b=P3([x*.55,y*.55,z*.55]), e=P3([x*1.42,y*1.42,z*1.42]);
+      svgEl("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:c,"stroke-width":2,opacity:.8},g3); textSvg(g3,t,e[0],e[1]+5,c,13,"middle",700); });
+    // the direction, out to where it meets the cube
+    const dd=d.every(v=>Math.abs(v)<1e-3)?[0,0,-1]:d, o=P3([0,0,0]), m=Math.max(...dd.map(Math.abs)), t=P3(dd.map(v=>v/m));
+    arrowSvg(g3,o[0],o[1],t[0],t[1],Y,4); svgEl("circle",{cx:t[0],cy:t[1],r:5,fill:Y,stroke:"#0d0d0f","stroke-width":2},g3); svgEl("circle",{cx:o[0],cy:o[1],r:3.5,fill:INK},g3);
+    textSvg(g3,"direction",CX,22,MUTE,14,"middle"); }
   let d=[.3,.2,-1];
   const S=["X","Y","Z"].map((a,i)=>slider("cs"+a,v=>fx(v),v=>{ d[i]=v; upd(); }));
   function upd(){ const q=faceOf(d.every(v=>Math.abs(v)<1e-3)?[0,0,-1]:d), f=q.f, x=OX+(f.cell[0]+q.px)*C, y=OY+(f.cell[1]+q.py)*C;
     hi.setAttribute("x",OX+f.cell[0]*C); hi.setAttribute("y",OY+f.cell[1]*C);
-    dt_.setAttribute("cx",x); dt_.setAttribute("cy",y); ring.setAttribute("cx",x); ring.setAttribute("cy",y);
+    dt_.setAttribute("cx",x); dt_.setAttribute("cy",y); ring.setAttribute("cx",x); ring.setAttribute("cy",y); draw3(q);
     read.innerHTML=`direction = (${d.map(v=>fx(v)).join(", ")})<br>largest: |${"xyz"[q.major]}| = ${Math.abs(d[q.major]).toFixed(2)} → <b>${f.axis} ${f.name}</b> · layer ${f.layer}<br>spot on that face = (${q.px.toFixed(2)}, ${q.py.toFixed(2)})`; }
   svg.addEventListener("pointerdown",e=>{ const [mx,my]=svgXY(e,svg), cx=Math.floor((mx-OX)/C), cy=Math.floor((my-OY)/C), f=FACES.find(q=>q.cell[0]===cx&&q.cell[1]===cy); if(!f) return;
     const px=(mx-OX)/C-cx, py=(my-OY)/C-cy, u=px*2-1, v=1-py*2; const p=[0,1,2].map(i=>f.n[i]+f.r[i]*u+f.u[i]*v); p.forEach((val,i)=>S[i].set(+val.toFixed(2))); });
