@@ -747,8 +747,8 @@
         <p class="rise" style="--i:1;font-size:21px"><code>dot(n, i)</code> projects <b style="color:var(--blue)">i</b> onto the unit normal <b style="color:var(--green)">n</b>: how far <b style="color:var(--blue)">i</b> goes <i>into</i> the surface. Remove that part twice and it bounces out.</p>
         <div class="fxl card pad rise" style="--i:2" id="rfLines">
           <div><span style="color:var(--green)">n</span> · dot(n, i) &nbsp;<span class="muted">← the part of i along n</span></div>
-          <div><span style="color:var(--green)">n</span> · dot(n, i) · 2</div>
-          <div>r = <span style="color:var(--blue)">i</span> − <span style="color:var(--green)">n</span> · dot(n, i) · 2</div>
+          <div><span style="color:var(--amber)">−<span style="color:var(--green)">n</span> · dot(n, i) · 2</span> &nbsp;<span class="muted">← pushes back out</span></div>
+          <div>r = <span style="color:var(--blue)">i</span> + (<span style="color:var(--amber)">−<span style="color:var(--green)">n</span> · dot(n, i) · 2</span>)</div>
         </div>
         <div class="callout keyIdea" id="rfKey">HLSL has it built in: <code>float3 r = reflect(i, n);</code> The angle in equals the angle out.</div>
         <div class="hint rise" style="--i:3">→ builds the formula · drag the tip of i</div>

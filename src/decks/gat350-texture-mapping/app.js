@@ -917,7 +917,10 @@ function litDemo(cv,opt){
     if(k>=1){ arrowSvg(g,S[0],S[1],S[0],Py,GREEN,3,"8 6"); textSvg(g,`n·dot(n,i) = ${fx(dn)}`,S[0]+(ix>0?-12:12),(S[1]+Py)/2,GREEN,16,ix>0?"end":"start");
       svgEl("line",{x1:S[0],y1:Py,x2:Px,y2:Py,stroke:BLUE,"stroke-width":2,"stroke-dasharray":"4 6",opacity:.6},g); }
     if(k>=2){ arrowSvg(g,Px,Py,Px,Py+2*dn*L,AMBER,4); textSvg(g,"−n·dot(n,i)·2",Px+14,Py+2*dn*L+18,AMBER,16); }
-    if(k>=3){ const rx=ix, ry=-iy; arrowSvg(g,Px,Py,Px+rx*L,Py-ry*L,Y,6); textSvg(g,"r",Px+rx*L*.55+(rx>0?18:-18),Py-ry*L*.55,Y,28,"middle",700);
+    if(k>=3){ const rx=ix, ry=-iy, Tx=Px+ix*L, Ty=Py-iy*L;   // i copied to start at the origin, then the amber push added tip-to-tail
+      const faint=svgEl("g",{opacity:.4},g); arrowSvg(faint,Px,Py,Tx,Ty,BLUE,3,"6 6"); arrowSvg(faint,Tx,Ty,Tx,Ty+2*dn*L,AMBER,3,"6 6");
+      textSvg(g,"i",(Px+Tx)/2+(ix>0?16:-16),(Py+Ty)/2+6,BLUE,20,"middle",700).setAttribute("opacity",.55);
+      arrowSvg(g,Px,Py,Px+rx*L,Py-ry*L,Y,6); textSvg(g,"r",Px+rx*L*.55+(rx>0?18:-18),Py-ry*L*.55,Y,28,"middle",700);
       svgEl("line",{x1:S[0],y1:S[1],x2:Px+ix*L,y2:S[1],stroke:Y,"stroke-width":1.5,"stroke-dasharray":"3 6",opacity:.5},g);
       const th=Math.abs(ang), R=70, a1=-Math.PI/2, sgn=ix>0?-1:1;
       const arc=(a,b,c)=>svgEl("path",{d:`M${Px+R*Math.cos(a)},${Py+R*Math.sin(a)} A${R},${R} 0 0 ${b>a?1:0} ${Px+R*Math.cos(b)},${Py+R*Math.sin(b)}`,fill:"none",stroke:c,"stroke-width":2.5},g);
