@@ -995,17 +995,17 @@ float4 main(float3 dir : TEXCOORD0) : SV_Target0
 }</script>
 <script type="text/plain" id="hVin">struct Input
 {
-    float3 position : TEXCOORD0;
-    float2 texcoord : TEXCOORD1;
-    float3 normal : TEXCOORD2;
+    float3 Position : TEXCOORD0;
+    float2 TexCoord : TEXCOORD1;
+    float3 Normal : TEXCOORD2;
 };
 
 Output main(Input input)
 {
     Output output;
-    output.position = mul(MVP, float4(input.position, 1.0));
-    output.texcoord = input.texcoord;
-    output.normal = mul((float3x3)Model, input.normal);
+    output.Position = mul(MVP, float4(input.Position, 1.0));
+    output.TexCoord = input.TexCoord;
+    output.Normal = mul((float3x3)Model, input.Normal);
     return output;
 }</script>
 <script type="text/plain" id="hReflV">cbuffer Matrices : register(b0, space1)

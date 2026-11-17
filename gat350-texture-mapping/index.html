@@ -832,7 +832,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 7:58 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 8:08 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -996,17 +996,17 @@ float4 main(float3 dir : TEXCOORD0) : SV_Target0
 }</script>
 <script type="text/plain" id="hVin">struct Input
 {
-    float3 position : TEXCOORD0;
-    float2 texcoord : TEXCOORD1;
-    float3 normal : TEXCOORD2;
+    float3 Position : TEXCOORD0;
+    float2 TexCoord : TEXCOORD1;
+    float3 Normal : TEXCOORD2;
 };
 
 Output main(Input input)
 {
     Output output;
-    output.position = mul(MVP, float4(input.position, 1.0));
-    output.texcoord = input.texcoord;
-    output.normal = mul((float3x3)Model, input.normal);
+    output.Position = mul(MVP, float4(input.Position, 1.0));
+    output.TexCoord = input.TexCoord;
+    output.Normal = mul((float3x3)Model, input.Normal);
     return output;
 }</script>
 <script type="text/plain" id="hReflV">cbuffer Matrices : register(b0, space1)
@@ -1421,7 +1421,7 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
 /* ---------- vertex input: position, texcoord and normal flow from the model into struct Input ---------- */
 (() => {
   const cv=$("viCv"), ov=$("viOv"), box=$("viBox"), pre=$("viCode"), tip=$("viTip"), D=cubeData(), COL=[RED,GREEN,BLUE];
-  const SEL=16, SLOTS=[16,17,18,19,8,9], BYTES=[12,8,12], OFF=[0,12,20], NAMES=["position","texcoord","normal"];
+  const SEL=16, SLOTS=[16,17,18,19,8,9], BYTES=[12,8,12], OFF=[0,12,20], NAMES=["Position","TexCoord","Normal"];
   const TIPS=[
     "A model is a list of <b>vertices</b>. This cube has 24: 4 per face, so each face gets its own UVs and normal.",
     "Each vertex carries several <b>attributes</b>: a <b style=\"color:var(--red)\">position</b>, a <b style=\"color:var(--green)\">texcoord</b> (the UV) and a <b style=\"color:var(--blue)\">normal</b>.",

@@ -366,7 +366,7 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
 /* ---------- vertex input: position, texcoord and normal flow from the model into struct Input ---------- */
 (() => {
   const cv=$("viCv"), ov=$("viOv"), box=$("viBox"), pre=$("viCode"), tip=$("viTip"), D=cubeData(), COL=[RED,GREEN,BLUE];
-  const SEL=16, SLOTS=[16,17,18,19,8,9], BYTES=[12,8,12], OFF=[0,12,20], NAMES=["position","texcoord","normal"];
+  const SEL=16, SLOTS=[16,17,18,19,8,9], BYTES=[12,8,12], OFF=[0,12,20], NAMES=["Position","TexCoord","Normal"];
   const TIPS=[
     "A model is a list of <b>vertices</b>. This cube has 24: 4 per face, so each face gets its own UVs and normal.",
     "Each vertex carries several <b>attributes</b>: a <b style=\"color:var(--red)\">position</b>, a <b style=\"color:var(--green)\">texcoord</b> (the UV) and a <b style=\"color:var(--blue)\">normal</b>.",
