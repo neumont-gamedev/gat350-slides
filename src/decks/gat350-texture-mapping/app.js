@@ -363,6 +363,76 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
   };
 })();
 
+/* ---------- CPU → GPU: disk, RAM, bus, VRAM, parallel sampling ---------- */
+(() => {
+  const cv=$("cgCv"), lis=[...$("cgSteps").children], key=$("cgKey"), N=8;
+  let k=0, t=0, tex=null, pairs=[], pt=-1;
+  const hsh=(a,b)=>{ const s=Math.sin(a*127.1+b*311.7)*43758.5453; return s-Math.floor(s); };
+  const rr=(x,X,Y,W,H,r)=>{ x.beginPath(); x.roundRect(X,Y,W,H,r); };
+  function texels(){ if(tex) return tex; const im=IM.bricks; if(!im.complete||!im.naturalWidth) return null;
+    const c=document.createElement("canvas"); c.width=c.height=N; const g=c.getContext("2d"); g.drawImage(im,0,0,N,N);
+    const d=g.getImageData(0,0,N,N).data; tex=[]; for(let i=0;i<N*N;i++) tex.push(`rgb(${d[i*4]},${d[i*4+1]},${d[i*4+2]})`); return tex; }
+  function show(){ lis.forEach((l,i)=>{ l.classList.toggle("on",i===k); l.classList.toggle("done",i<k); }); key.classList.toggle("on",k===3); }
+  function draw(){
+    const T=texels(); if(!T) return;
+    const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight; x.clearRect(0,0,W,H);
+    const pw=W*.36, cx0=22, gx0=W-22-pw, py=24, ph=H-48, cell=Math.floor(Math.min(pw-80,180)/N), gs=cell*N;
+    const fileY=py+50, fileH=80, gridY=fileY+fileH+56, ramX=cx0+(pw-gs)/2, vramX=gx0+(pw-gs)/2, yBus=gridY+gs/2;
+    const cellC=(X,i)=>[X+(i%N+.5)*cell, gridY+(Math.floor(i/N)+.5)*cell];
+    // panels
+    [[cx0,"CPU · system RAM",BLUE,k<=1?1:.6],[gx0,"GPU · video RAM",GREEN,k>=2?1:.4]].forEach(([X,ti,col,a])=>{
+      x.globalAlpha=a; x.fillStyle="#141418"; x.strokeStyle=col; x.lineWidth=1.5; rr(x,X,py,pw,ph,16); x.fill(); x.globalAlpha=a*.45; x.stroke();
+      x.globalAlpha=a; label(x,ti,X+18,py+30,col,15); x.globalAlpha=1; });
+    // bus
+    const busOn=k===2&&t<2300, bx0=cx0+pw, bx1=gx0;
+    x.strokeStyle=busOn?Y:LINE; x.lineWidth=3; [-20,20].forEach(o=>{ x.beginPath(); x.moveTo(bx0,yBus+o); x.lineTo(bx1,yBus+o); x.stroke(); });
+    if(busOn){ x.setLineDash([6,10]); x.lineDashOffset=-t/20; x.strokeStyle="rgba(255,194,14,.5)"; x.lineWidth=1.5; x.beginPath(); x.moveTo(bx0,yBus); x.lineTo(bx1,yBus); x.stroke(); x.setLineDash([]); }
+    label(x,"PCIe bus",(bx0+bx1)/2,yBus-34,k===2?Y:MUTE,14,"center"); label(x,"~16–32 GB/s",(bx0+bx1)/2,yBus+46,MUTE,13,"center");
+    // file on disk
+    x.globalAlpha=k===0?1:.55; x.fillStyle="#1c1c21"; x.strokeStyle=k===0?Y:LINE; x.lineWidth=k===0?2:1; rr(x,cx0+18,fileY,pw-36,fileH,12); x.fill(); x.stroke();
+    const ix=cx0+34, iy=fileY+12; x.fillStyle="#2a2a31"; x.beginPath(); x.moveTo(ix,iy); x.lineTo(ix+34,iy); x.lineTo(ix+46,iy+12); x.lineTo(ix+46,iy+56); x.lineTo(ix,iy+56); x.closePath(); x.fill();
+    x.drawImage(IM.bricks,ix+7,iy+18,32,32);
+    label(x,"bricks.png",ix+62,iy+24,INK,16); label(x,"on disk · compressed",ix+62,iy+46,MUTE,13);
+    x.globalAlpha=1;
+    // arrow file → RAM
+    const ax=cx0+pw/2; x.strokeStyle=k===1?Y:LINE; x.fillStyle=x.strokeStyle; x.lineWidth=2; x.beginPath(); x.moveTo(ax,fileY+fileH+6); x.lineTo(ax,gridY-30); x.stroke();
+    x.beginPath(); x.moveTo(ax-6,gridY-36); x.lineTo(ax+6,gridY-36); x.lineTo(ax,gridY-28); x.fill();
+    label(x,"decode",ax+10,fileY+fileH+26,k===1?Y:MUTE,13);
+    // grids
+    const ramN=k===0?0:k===1?Math.min(N*N,Math.floor(t/1200*N*N)):N*N;
+    const flight=i=>(t-i*22)/700, vramN=k<2?0:k===2?T.filter((_,i)=>flight(i)>=1).length:N*N;
+    const grid=(X,n,a,lab,sub,col)=>{ x.globalAlpha=a; for(let i=0;i<N*N;i++){ x.fillStyle=i<n?T[i]:"#1c1c21"; x.fillRect(X+(i%N)*cell+1,gridY+Math.floor(i/N)*cell+1,cell-2,cell-2); }
+      label(x,lab,X+gs/2,gridY-10,col,13,"center"); label(x,sub,X+gs/2,gridY+gs+22,MUTE,13,"center"); x.globalAlpha=1; };
+    grid(ramX,ramN,k<=1?1:.6,"SDL_Surface (RGBA)","1024² × 4 B = 4 MB",k===1?BLUE:MUTE);
+    grid(vramX,vramN,k>=2?1:.4,"SDL_GPUTexture",k===3?"VRAM: ~500+ GB/s":"same texels, now on the GPU",k>=2?GREEN:MUTE);
+    // texels in flight
+    if(k===2) for(let i=0;i<N*N;i++){ const p=flight(i); if(p<=0||p>=1) continue; const e=p*p*(3-2*p), u=1-e;
+      const [sx,sy]=cellC(ramX,i), [dx,dy]=cellC(vramX,i);
+      const px=u*u*u*sx+3*u*u*e*bx0+3*u*e*e*bx1+e*e*e*dx, pyy=u*u*u*sy+3*u*u*e*yBus+3*u*e*e*yBus+e*e*e*dy, s=cell*.7;
+      x.shadowColor=Y; x.shadowBlur=10; x.fillStyle=T[i]; x.fillRect(px-s/2,pyy-s/2,s,s); x.shadowBlur=0; }
+    // CPU cores: 8 big
+    const cs=44, cg=10, cw=4*cs+3*cg, ccx=cx0+(pw-cw)/2, ccy=py+ph-140;
+    for(let i=0;i<8;i++){ const X=ccx+(i%4)*(cs+cg), Yc=ccy+Math.floor(i/4)*(cs+cg);
+      const lit=(k===1&&t<1200&&Math.floor(t/150)%8===i)||(k===3&&hsh(i,Math.floor(t/500))>.6);
+      x.fillStyle=lit?BLUE:"#24242a"; rr(x,X,Yc,cs,cs,8); x.fill(); }
+    label(x,k===3?"8 cores, free for game logic":"8 big cores",cx0+pw/2,py+ph-16,k===1||k===3?BLUE:MUTE,13,"center");
+    // GPU cores: many small
+    const gc=16, gr=8, gq=9, gp=4, gw=gc*(gq+gp)-gp, gcx=gx0+(pw-gw)/2, gcy=py+ph-150, slot=Math.floor(t/110);
+    const coreC=j=>[gcx+(j%gc)*(gq+gp)+gq/2, gcy+Math.floor(j/gc)*(gq+gp)+gq/2];
+    if(k===3){ if(slot!==pt){ pt=slot; pairs=[]; for(let n=0;n<34;n++) pairs.push([Math.floor(Math.random()*gc*gr),Math.floor(Math.random()*N*N)]); }
+      x.strokeStyle="rgba(95,214,138,.28)"; x.lineWidth=1; pairs.forEach(([j,i])=>{ const [a,b]=coreC(j), [c,d]=cellC(vramX,i); x.beginPath(); x.moveTo(a,b); x.lineTo(c,d); x.stroke(); }); }
+    for(let j=0;j<gc*gr;j++){ const [a,b]=coreC(j); x.fillStyle=k===3&&hsh(j,slot)>.35?GREEN:"#24242a"; x.globalAlpha=k>=2?1:.5; x.fillRect(a-gq/2,b-gq/2,gq,gq); }
+    x.globalAlpha=1;
+    if(k===3){ x.fillStyle="#141418"; x.fillRect(vramX-8,gridY+gs+6,gs+16,24); label(x,"VRAM: ~500+ GB/s",vramX+gs/2,gridY+gs+22,GREEN,13,"center"); }
+    label(x,"thousands of small cores",gx0+pw/2,py+ph-16,k===3?GREEN:MUTE,13,"center");
+    // per-frame stat
+    if(k===3){ const sx=gx0+pw/2; label(x,"every frame at 1920×1080:",sx,fileY+24,MUTE,13,"center");
+      label(x,"~2 million samples",sx,fileY+54,Y,22,"center"); label(x,"all in parallel",sx,fileY+78,MUTE,13,"center"); }
+  }
+  A.cpu2gpu={ enter(d){ k=d<0?3:0; t=d<0?1e5:0; show(); }, step(){ if(k>=3) return false; k++; t=0; show(); return true; },
+    back(){ if(k<=0) return false; k--; t=1e5; show(); return true; }, tick(dt){ t+=dt; draw(); } };
+})();
+
 /* ---------- create texture: step through the code ---------- */
 (() => {
   const pre=$("crCode"), lis=[...$("crSteps").children], key=$("crKey"), R=[[[1,2]],[[4,6]],[[8,16]],[[18,19]]]; let k=0;

@@ -283,6 +283,24 @@
     <p class="rise" style="--i:2;margin-top:28px">Artists <b class="y">unwrap</b> a model in a 3D tool (Blender, Maya). The UVs are saved in the model file, and you put them in your vertex buffer next to the position and normal.</p>
   </section>
 
+  <!-- 5b cpu to gpu -->
+  <section class="slide" data-id="cpu2gpu">
+    <h2 class="rise" style="--i:0"><span class="n">THE BIG PICTURE</span>From the CPU to the GPU</h2>
+    <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:34px;margin-top:22px">
+      <div class="stage-box rise" style="--i:1;height:620px"><canvas id="cgCv"></canvas></div>
+      <div class="stack rise" style="--i:2;gap:20px">
+        <ol class="num steps" id="cgSteps">
+          <li>The image file sits on <b>disk</b>, compressed (PNG, JPG).</li>
+          <li>The <b style="color:var(--blue)">CPU</b> decodes it into raw texels in system RAM. It has a few fast cores, built for logic, not millions of identical jobs.</li>
+          <li>Copy it <b class="y">once</b> across the bus into the GPU’s own memory (VRAM).</li>
+          <li>Every frame, <b style="color:var(--green)">thousands of GPU cores</b> sample it in parallel, right next to fast VRAM.</li>
+        </ol>
+        <div class="callout keyIdea" id="cgKey">Upload once, sample millions of times. The bus is the slow part, so copy at <b class="y">load time</b>, not every frame.</div>
+        <div class="hint">→ follows the image from disk to the GPU</div>
+      </div>
+    </div>
+  </section>
+
   <!-- 6 create -->
   <section class="slide" data-id="create">
     <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 1</span>Create the texture</h2>
