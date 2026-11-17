@@ -40,6 +40,30 @@ aren't locked.
 Free tier: Firestore's Spark plan allows 50,000 reads and 20,000 writes per day. Each slide change
 costs one read per connected student, so a class of 30 uses roughly 1,000–2,000 reads per session.
 
+## Status (paused 2026-11-17)
+
+| Deck | Source pptx | State |
+| --- | --- | --- |
+| `gat350-texture-mapping` | `GAT350 - Texture Mapping.pptx` | Done, 37 slides, live |
+
+Not converted yet (all in the Presentations folder): Computer Displays, Framebuffer, Graphics
+Introduction, Introduction to OpenGL, Lighting, Normal Mapping, OpenGL Vertex Buffer, Rasterization,
+Ray Tracing, Shaders, Shadow Mapping, Transformation.
+
+Follow `../SLIDES_GUIDE.md` for every new deck.
+
+## GAT350 conventions
+
+- The course is **Computer Graphics**. Eyebrows read `GAT350 · Computer Graphics`.
+- The course now uses **SDL3 GPU** with **HLSL** compiled by SDL_shadercross. The old pptx decks show
+  OpenGL calls and GLSL; replace them with SDL3 GPU calls and HLSL. Don't mention OpenGL in slide text.
+- Keep title slides API-agnostic (no "with SDL3 GPU and HLSL" in the lede).
+- HLSL struct members are PascalCase (`Position`, `TexCoord`, `Normal`), matching the SDL examples.
+  Semantics are uppercase (`TEXCOORD0`).
+- Interactive 3D demos use WebGL2 (the shared `GL` context in app.js). That's fine even though the
+  course API is SDL3 GPU.
+- Code listings live in `<script type="text/plain" id="h...">` blocks in shell.html.
+
 ## Editing and adding decks
 
 Edit the sources in `src/`, then run:
