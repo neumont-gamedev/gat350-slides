@@ -366,7 +366,7 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
 /* ---------- create texture: step through the code ---------- */
 (() => {
   const pre=$("crCode"), lis=[...$("crSteps").children], key=$("crKey"), R=[[[1,2]],[[4,6]],[[8,16]],[[18,19]]]; let k=0;
-  function show(){ hlLines(pre,k<4?R[k]:[]); lis.forEach((l,i)=>{ l.classList.toggle("on",i===k||k===4); l.classList.toggle("done",i<k); }); key.classList.toggle("on",k===4); }
+  function show(){ hlLines(pre,k<4?R[k]:[]); lis.forEach((l,i)=>{ l.classList.toggle("on",i===k||k===4); l.classList.toggle("done",i<k); }); key&&key.classList.toggle("on",k===4); }
   A.create={ enter(d){ k=d<0?4:0; show(); }, step(){ if(k>=4) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
 })();
 
