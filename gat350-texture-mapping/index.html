@@ -832,7 +832,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 10:15 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 10:20 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -1969,8 +1969,9 @@ function litDemo(cv,opt){
     svgEl("circle",{cx:S[0],cy:S[1],r:12,fill:BLUE,opacity:.35,style:"cursor:grab"},g);
     // n
     arrowSvg(g,Px,Py,Px,Py-L,GREEN,5); textSvg(g,"n",Px+16,Py-L+10,GREEN,26,"start",700);
-    if(k>=1){ arrowSvg(g,S[0],S[1],S[0],Py,GREEN,3,"8 6"); textSvg(g,`n·dot(n,i) = ${fx(dn)}`,S[0]+(ix>0?-12:12),(S[1]+Py)/2,GREEN,16,ix>0?"end":"start");
-      svgEl("line",{x1:S[0],y1:Py,x2:Px,y2:Py,stroke:BLUE,"stroke-width":2,"stroke-dasharray":"4 6",opacity:.6},g); }
+    // n·dot(n,i): from the origin along the dotted copy of i, down into the surface; a dashed line drops to the copy's tip
+    if(k>=1){ const Dy=Py-dn*L; arrowSvg(g,Px,Py,Px,Dy,GREEN,3,"8 6"); textSvg(g,`n·dot(n,i) = ${fx(dn)}`,Px+(ix>0?-14:14),(Py+Dy)/2+6,GREEN,16,ix>0?"end":"start");
+      svgEl("line",{x1:Px,y1:Dy,x2:Px+ix*L,y2:Dy,stroke:BLUE,"stroke-width":2,"stroke-dasharray":"4 6",opacity:.6},g); }
     if(k>=2){ arrowSvg(g,Px,Py,Px,Py+2*dn*L,AMBER,4); textSvg(g,"−n·dot(n,i)·2",Px+14,Py+2*dn*L+18,AMBER,16); }
     // i copied to start at the origin (always shown); the amber push is added tip-to-tail once r appears
     const Tx=Px+ix*L, Ty=Py-iy*L, faint=svgEl("g",{opacity:.4},g); arrowSvg(faint,Px,Py,Tx,Ty,BLUE,3,"6 6");
