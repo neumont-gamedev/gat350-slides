@@ -435,9 +435,15 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
 
 /* ---------- create texture: step through the code ---------- */
 (() => {
-  const pre=$("crCode"), lis=[...$("crSteps").children], key=$("crKey"), R=[[[1,2]],[[4,6]],[[8,16]],[[18,19]]]; let k=0;
-  function show(){ hlLines(pre,k<4?R[k]:[]); lis.forEach((l,i)=>{ l.classList.toggle("on",i===k||k===4); l.classList.toggle("done",i<k); }); key&&key.classList.toggle("on",k===4); }
-  A.create={ enter(d){ k=d<0?4:0; show(); }, step(){ if(k>=4) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
+  const pre=$("crCode"), nodes=[...$("crPipe").children], tip=$("crTip");
+  const S=[
+    {r:[[1,2]],t:"<b>IMG_Load</b> (from SDL_image) reads a PNG or JPG from disk and decodes it into an <b>SDL_Surface</b> in normal RAM."},
+    {r:[[4,6]],t:"Convert it to <b>RGBA, 4 bytes per texel</b>. The GPU has no 3-byte RGB format, so a JPG must be converted first."},
+    {r:[[8,16]],t:"Fill in an <b>SDL_GPUTextureCreateInfo</b>: type, format, usage, size, layers and mip levels."},
+    {r:[[18,19]],t:"<b>SDL_CreateGPUTexture</b> makes the texture in GPU memory. It starts <b>empty</b>: the pixels are uploaded in the next step."}
+  ]; let k=0;
+  function show(){ hlLines(pre,S[k].r); tip.innerHTML=S[k].t; nodes.forEach((n,i)=>{ n.classList.toggle("on",i===k); n.classList.toggle("done",i<k); }); }
+  A.create={ enter(d){ k=d<0?3:0; show(); }, step(){ if(k>=3) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
 })();
 
 /* ---------- upload: follow the pixels ---------- */

@@ -305,15 +305,16 @@
   <!-- 6 create -->
   <section class="slide" data-id="create">
     <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 1</span>Create the texture</h2>
-    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:34px;margin-top:24px">
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:30px;margin-top:22px">
       <pre class="src rise" style="--i:1" data-code="cCreate" id="crCode"></pre>
-      <div class="stack rise" style="--i:2;gap:18px">
-        <ol class="num steps" id="crSteps">
-          <li>Load the image into an <b>SDL_Surface</b> with SDL_image.</li>
-          <li>Convert it to <b class="y">RGBA, 4 bytes per texel</b>. The GPU has no 3-byte RGB format.</li>
-          <li>Describe the texture: type, format, usage, size, layers, mip levels.</li>
-          <li><b class="y">SDL_CreateGPUTexture</b> makes an empty texture in GPU memory.</li>
-        </ol>
+      <div class="stack rise" style="--i:2;gap:12px">
+        <div class="pipe" id="crPipe">
+          <div class="card pnode"><span class="ic">💾</span><div><h3>IMG_Load</h3><p>image file → SDL_Surface</p></div><span class="tag t-blue">CPU</span></div>
+          <div class="card pnode"><span class="ic">🎨</span><div><h3>SDL_ConvertSurface</h3><p>any format → RGBA, 4 bytes</p></div><span class="tag t-blue">CPU</span></div>
+          <div class="card pnode"><span class="ic">📝</span><div><h3>SDL_GPUTextureCreateInfo</h3><p>describe what you want</p></div><span class="tag t-y">DESCRIBE</span></div>
+          <div class="card pnode"><span class="ic">🧱</span><div><h3>SDL_CreateGPUTexture</h3><p>empty texture in GPU memory</p></div><span class="tag t-green">GPU</span></div>
+        </div>
+        <div class="card tip" id="crTip" style="min-height:130px;font-size:19px"></div>
         <div class="hint">→ steps through the code</div>
       </div>
     </div>
@@ -818,7 +819,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 6:12 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 6:17 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -1461,9 +1462,15 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
 
 /* ---------- create texture: step through the code ---------- */
 (() => {
-  const pre=$("crCode"), lis=[...$("crSteps").children], key=$("crKey"), R=[[[1,2]],[[4,6]],[[8,16]],[[18,19]]]; let k=0;
-  function show(){ hlLines(pre,k<4?R[k]:[]); lis.forEach((l,i)=>{ l.classList.toggle("on",i===k||k===4); l.classList.toggle("done",i<k); }); key&&key.classList.toggle("on",k===4); }
-  A.create={ enter(d){ k=d<0?4:0; show(); }, step(){ if(k>=4) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
+  const pre=$("crCode"), nodes=[...$("crPipe").children], tip=$("crTip");
+  const S=[
+    {r:[[1,2]],t:"<b>IMG_Load</b> (from SDL_image) reads a PNG or JPG from disk and decodes it into an <b>SDL_Surface</b> in normal RAM."},
+    {r:[[4,6]],t:"Convert it to <b>RGBA, 4 bytes per texel</b>. The GPU has no 3-byte RGB format, so a JPG must be converted first."},
+    {r:[[8,16]],t:"Fill in an <b>SDL_GPUTextureCreateInfo</b>: type, format, usage, size, layers and mip levels."},
+    {r:[[18,19]],t:"<b>SDL_CreateGPUTexture</b> makes the texture in GPU memory. It starts <b>empty</b>: the pixels are uploaded in the next step."}
+  ]; let k=0;
+  function show(){ hlLines(pre,S[k].r); tip.innerHTML=S[k].t; nodes.forEach((n,i)=>{ n.classList.toggle("on",i===k); n.classList.toggle("done",i<k); }); }
+  A.create={ enter(d){ k=d<0?3:0; show(); }, step(){ if(k>=3) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
 })();
 
 /* ---------- upload: follow the pixels ---------- */

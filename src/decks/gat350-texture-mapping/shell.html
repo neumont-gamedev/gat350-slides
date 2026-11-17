@@ -304,15 +304,16 @@
   <!-- 6 create -->
   <section class="slide" data-id="create">
     <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 1</span>Create the texture</h2>
-    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:34px;margin-top:24px">
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:30px;margin-top:22px">
       <pre class="src rise" style="--i:1" data-code="cCreate" id="crCode"></pre>
-      <div class="stack rise" style="--i:2;gap:18px">
-        <ol class="num steps" id="crSteps">
-          <li>Load the image into an <b>SDL_Surface</b> with SDL_image.</li>
-          <li>Convert it to <b class="y">RGBA, 4 bytes per texel</b>. The GPU has no 3-byte RGB format.</li>
-          <li>Describe the texture: type, format, usage, size, layers, mip levels.</li>
-          <li><b class="y">SDL_CreateGPUTexture</b> makes an empty texture in GPU memory.</li>
-        </ol>
+      <div class="stack rise" style="--i:2;gap:12px">
+        <div class="pipe" id="crPipe">
+          <div class="card pnode"><span class="ic">💾</span><div><h3>IMG_Load</h3><p>image file → SDL_Surface</p></div><span class="tag t-blue">CPU</span></div>
+          <div class="card pnode"><span class="ic">🎨</span><div><h3>SDL_ConvertSurface</h3><p>any format → RGBA, 4 bytes</p></div><span class="tag t-blue">CPU</span></div>
+          <div class="card pnode"><span class="ic">📝</span><div><h3>SDL_GPUTextureCreateInfo</h3><p>describe what you want</p></div><span class="tag t-y">DESCRIBE</span></div>
+          <div class="card pnode"><span class="ic">🧱</span><div><h3>SDL_CreateGPUTexture</h3><p>empty texture in GPU memory</p></div><span class="tag t-green">GPU</span></div>
+        </div>
+        <div class="card tip" id="crTip" style="min-height:130px;font-size:19px"></div>
         <div class="hint">→ steps through the code</div>
       </div>
     </div>
