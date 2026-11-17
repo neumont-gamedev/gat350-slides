@@ -399,15 +399,15 @@
         <h2 class="rise" style="--i:0"><span class="n">MAG / MIN FILTER</span>Texture filtering</h2>
         <p class="rise" style="--i:1;font-size:22px">When a texture is stretched, screen pixels fall <b>between</b> texels. The filter decides what color they get.</p>
         <div class="acts rise" style="--i:2" id="fiMode">
-          <button class="btn mono" data-k="n">SDL_GPU_FILTER_NEAREST</button>
-          <button class="btn mono" data-k="l">SDL_GPU_FILTER_LINEAR</button>
+          <button class="btn mono" data-k="n">FILTER_NEAREST</button>
+          <button class="btn mono" data-k="l">FILTER_LINEAR</button>
         </div>
-        <div class="card readout rise" style="--i:3;min-height:150px" id="fiRead"></div>
+        <div class="card rise" style="--i:3;height:220px;position:relative;overflow:hidden"><canvas id="fiPv" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>
         <div class="ctl rise" style="--i:4"><span>zoom</span><input type="range" id="fiZoom" min="1" max="4" step=".05" value="1"><output id="fiZoomO"></output></div>
         <div class="acts rise" style="--i:4"><button class="btn sm" id="fiGrid">show texel grid</button></div>
         <div class="hint rise" style="--i:5">hover the image to see which texels a pixel reads</div>
       </div>
-      <div class="stage-box rise" style="--i:2"><canvas id="fiCv"></canvas><div class="cap" id="fiCap">32 × 24 texture, magnified</div></div>
+      <div class="stage-box rise" style="--i:2"><canvas id="fiCv"></canvas><div class="cap" id="fiCap">64 × 48 texture, magnified</div></div>
     </div>
   </section>
 

@@ -400,15 +400,15 @@
         <h2 class="rise" style="--i:0"><span class="n">MAG / MIN FILTER</span>Texture filtering</h2>
         <p class="rise" style="--i:1;font-size:22px">When a texture is stretched, screen pixels fall <b>between</b> texels. The filter decides what color they get.</p>
         <div class="acts rise" style="--i:2" id="fiMode">
-          <button class="btn mono" data-k="n">SDL_GPU_FILTER_NEAREST</button>
-          <button class="btn mono" data-k="l">SDL_GPU_FILTER_LINEAR</button>
+          <button class="btn mono" data-k="n">FILTER_NEAREST</button>
+          <button class="btn mono" data-k="l">FILTER_LINEAR</button>
         </div>
-        <div class="card readout rise" style="--i:3;min-height:150px" id="fiRead"></div>
+        <div class="card rise" style="--i:3;height:220px;position:relative;overflow:hidden"><canvas id="fiPv" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>
         <div class="ctl rise" style="--i:4"><span>zoom</span><input type="range" id="fiZoom" min="1" max="4" step=".05" value="1"><output id="fiZoomO"></output></div>
         <div class="acts rise" style="--i:4"><button class="btn sm" id="fiGrid">show texel grid</button></div>
         <div class="hint rise" style="--i:5">hover the image to see which texels a pixel reads</div>
       </div>
-      <div class="stage-box rise" style="--i:2"><canvas id="fiCv"></canvas><div class="cap" id="fiCap">32 × 24 texture, magnified</div></div>
+      <div class="stage-box rise" style="--i:2"><canvas id="fiCv"></canvas><div class="cap" id="fiCap">64 × 48 texture, magnified</div></div>
     </div>
   </section>
 
@@ -818,7 +818,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 6:22 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 6:31 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -1578,7 +1578,7 @@ codeTips($("rvCode"),$("rvTip"),[
 
 /* ---------- filtering: nearest vs linear, see which texels each pixel reads ---------- */
 (() => {
-  const cv=$("fiCv"), TW=32, TH=24; let T=null, mode="n", zoom=1, grid=false, hover=null, dirty=true, off=null;
+  const cv=$("fiCv"), TW=64, TH=48; let T=null, mode="n", zoom=1, grid=false, hover=null, dirty=true, off=null;
   whenLoaded(IM.kitten,()=>{ const c=document.createElement("canvas"); c.width=TW; c.height=TH; const x=c.getContext("2d"); x.imageSmoothingQuality="high"; x.drawImage(IM.kitten,14,12,292,218,0,0,TW,TH); T=x.getImageData(0,0,TW,TH).data; dirty=true; });
   const setMode=tabs($("fiMode"),k=>{ mode=k; dirty=true; });
   const zs=slider("fiZoom",v=>v.toFixed(1)+"×",v=>{ zoom=v; dirty=true; });
@@ -1609,22 +1609,57 @@ codeTips($("rvCode"),$("rvTip"),[
       if(grid){ x.strokeStyle="rgba(243,241,234,.18)"; x.lineWidth=1; x.beginPath();
         for(let i=0;i<=TW;i++){ const [sx]=toScr(g,i/TW,0); x.moveTo(sx,g.oy); x.lineTo(sx,g.oy+g.dh); }
         for(let j=0;j<=TH;j++){ const [,sy]=toScr(g,0,j/TH); x.moveTo(g.ox,sy); x.lineTo(g.ox+g.dw,sy); } x.stroke(); }
-      let html=`<span class="k">${mode==="n"?"nearest":"linear"}</span>hover a pixel`;
+      let pv=null;
       if(hover&&hover[0]>g.ox&&hover[0]<g.ox+g.dw&&hover[1]>g.oy&&hover[1]<g.oy+g.dh){
         const [u,v]=toUV(g,hover[0],hover[1]), s=sample(u,v);
-        for(const [i,j,w] of s.taps){ const [a,b]=toScr(g,i/TW,j/TH), [c2,d2]=toScr(g,(i+1)/TW,(j+1)/TH);
-          x.strokeStyle=Y; x.lineWidth=3; x.globalAlpha=.4+w*.6; x.strokeRect(a+1.5,b+1.5,c2-a-3,d2-b-3); x.globalAlpha=1;
-          if(mode==="l"){ const cx=(a+c2)/2, cy=(b+d2)/2; x.fillStyle="rgba(13,13,15,.85)"; x.fillRect(cx-24,cy-11,48,22); label(x,w.toFixed(2),cx,cy+5,Y,13,"center"); } }
+        const box=(i,j)=>{ const [a,b]=toScr(g,i/TW,j/TH), [c2,d2]=toScr(g,(i+1)/TW,(j+1)/TH); return [a,b,c2-a,d2-b]; };
+        const ctr=(i,j)=>toScr(g,(i+.5)/TW,(j+.5)/TH);
+        if(mode==="l"){ // lines from the sample point to each texel center, thicker = more weight
+          for(const [i,j,w] of s.taps){ const [cx,cy]=ctr(i,j); x.strokeStyle="rgba(13,13,15,.9)"; x.lineWidth=2+w*5; x.beginPath(); x.moveTo(hover[0],hover[1]); x.lineTo(cx,cy); x.stroke();
+            x.strokeStyle=Y; x.lineWidth=.5+w*3.5; x.beginPath(); x.moveTo(hover[0],hover[1]); x.lineTo(cx,cy); x.stroke(); dot(x,cx,cy,3,Y); } }
+        for(const [i,j,w] of s.taps){ const [a,b,bw,bh]=box(i,j);
+          x.strokeStyle="#0d0d0f"; x.lineWidth=5; x.strokeRect(a,b,bw,bh);
+          x.strokeStyle=Y; x.lineWidth=2.5; x.strokeRect(a,b,bw,bh);
+          x.fillStyle=`rgba(255,194,14,${mode==="l"?w*.35:.15})`; x.fillRect(a,b,bw,bh); }
+        if(mode==="l"){ // weights sit outside the 2x2 block, at its four corners
+          const [i0,j0]=s.taps[0], [ga,gb]=toScr(g,i0/TW,j0/TH), [gc,gd]=toScr(g,(i0+2)/TW,(j0+2)/TH);
+          s.taps.forEach(([i,j,w])=>{ const r=i>i0, dn=j>j0, lx=r?gc+6:ga-6, ly=dn?gd+18:gb-8;
+            x.font='14px "JetBrains Mono",monospace'; const tw=x.measureText(w.toFixed(2)).width;
+            x.fillStyle="rgba(13,13,15,.9)"; x.fillRect(r?lx-3:lx-tw-3,ly-15,tw+6,20); label(x,w.toFixed(2),lx,ly,Y,14,r?"left":"right"); }); }
         x.strokeStyle=INK; x.lineWidth=1.5; x.beginPath(); x.moveTo(hover[0]-10,hover[1]); x.lineTo(hover[0]+10,hover[1]); x.moveTo(hover[0],hover[1]-10); x.lineTo(hover[0],hover[1]+10); x.stroke();
-        const col=`rgb(${s.c.map(Math.round).join(",")})`;
-        html=`<span class="k">${mode==="n"?"nearest":"linear"}</span>uv = (<b>${u.toFixed(3)}</b>, <b>${v.toFixed(3)}</b>)<br>texel = (${(u*TW).toFixed(2)}, ${(v*TH).toFixed(2)})<br>${mode==="n"?"reads <b>1</b> texel":"blends <b>4</b> texels by distance"} → <span style="display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-3px;background:${col}"></span>`;
+        pv={u,v,s};
       }
       x.restore();
-      if($("fiRead")._h!==html){ $("fiRead").innerHTML=html; $("fiRead")._h=html; }
+      preview(pv);
     }
   };
+  // zoomed 3x3 neighborhood around the texel under the mouse
+  const pc=$("fiPv");
+  function preview(p){
+    const x=ctxOf(pc), w=pc.offsetWidth, h=pc.offsetHeight; x.clearRect(0,0,w,h);
+    label(x,mode==="n"?"NEAREST":"LINEAR",20,30,MUTE,13);
+    if(!p){ label(x,"hover the image to see the texels it samples",20,h/2+6,MUTE,15); return; }
+    const {u,v,s}=p, C=Math.floor((h-60)/3), gx=20, gy=44, ci=Math.floor(u*TW), cj=Math.floor(v*TH);
+    x.save(); x.beginPath(); x.rect(gx,gy,C*3,C*3); x.clip();
+    for(let dj=-1;dj<=1;dj++) for(let di=-1;di<=1;di++){ const t=tex(ci+di,cj+dj); x.fillStyle=`rgb(${t.join(",")})`; x.fillRect(gx+(di+1)*C,gy+(dj+1)*C,C,C); }
+    x.strokeStyle="rgba(13,13,15,.6)"; x.lineWidth=1; for(let k=1;k<3;k++){ x.beginPath(); x.moveTo(gx+k*C,gy); x.lineTo(gx+k*C,gy+3*C); x.moveTo(gx,gy+k*C); x.lineTo(gx+3*C,gy+k*C); x.stroke(); }
+    const px=gx+(u*TW-(ci-1))*C, py=gy+(v*TH-(cj-1))*C, cell=(i,j)=>[gx+(i-ci+1)*C,gy+(j-cj+1)*C];
+    if(mode==="l") for(const [i,j,wt] of s.taps){ const [a,b]=cell(i,j); x.strokeStyle="rgba(13,13,15,.9)"; x.lineWidth=2+wt*5; x.beginPath(); x.moveTo(px,py); x.lineTo(a+C/2,b+C/2); x.stroke();
+      x.strokeStyle=Y; x.lineWidth=.5+wt*3.5; x.beginPath(); x.moveTo(px,py); x.lineTo(a+C/2,b+C/2); x.stroke(); }
+    for(const [i,j,wt] of s.taps){ const [a,b]=cell(i,j);
+      x.strokeStyle="#0d0d0f"; x.lineWidth=5; x.strokeRect(a+2.5,b+2.5,C-5,C-5); x.strokeStyle=Y; x.lineWidth=2.5; x.strokeRect(a+2.5,b+2.5,C-5,C-5);
+      const tx=mode==="l"?wt.toFixed(2):"1.00"; x.font='13px "JetBrains Mono",monospace'; const tw=x.measureText(tx).width;
+      x.fillStyle="rgba(13,13,15,.85)"; x.fillRect(a+C/2-tw/2-4,b+C-24,tw+8,18); label(x,tx,a+C/2,b+C-10,Y,13,"center"); }
+    dot(x,px,py,5,INK,"#0d0d0f");
+    x.restore(); x.strokeStyle=LINE; x.lineWidth=1; x.strokeRect(gx,gy,C*3,C*3);
+    // numbers + result
+    const rx=gx+C*3+24, col=`rgb(${s.c.map(Math.round).join(",")})`;
+    label(x,"uv",rx,gy+16,MUTE,13); label(x,`(${u.toFixed(3)}, ${v.toFixed(3)})`,rx,gy+36,Y,16);
+    label(x,"texel",rx,gy+64,MUTE,13); label(x,`(${(u*TW).toFixed(2)}, ${(v*TH).toFixed(2)})`,rx,gy+84,INK,16);
+    label(x,mode==="n"?"result: 1 texel":"result: 4 blended",rx,gy+112,MUTE,13);
+    x.fillStyle=col; x.beginPath(); x.roundRect(rx,gy+122,54,C*3-122,8); x.fill(); x.strokeStyle=LINE; x.stroke();
+  }
 })();
-
 /* ---------- mipmaps: a floor stretching into the distance ---------- */
 (() => {
   const cv=$("mpCv"), cap=$("mpCap"); let mode="off", aniso=false, moving=true, off=0;
