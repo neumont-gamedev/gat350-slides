@@ -363,6 +363,69 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
   };
 })();
 
+/* ---------- vertex input: position, texcoord and normal flow from the model into struct Input ---------- */
+(() => {
+  const cv=$("viCv"), ov=$("viOv"), box=$("viBox"), pre=$("viCode"), tip=$("viTip"), D=cubeData(), COL=[RED,GREEN,BLUE];
+  const SEL=16, SLOTS=[16,17,18,19,8,9], BYTES=[12,8,12], OFF=[0,12,20], NAMES=["position","texcoord","normal"];
+  const TIPS=[
+    "A model is a list of <b>vertices</b>. This cube has 24: 4 per face, so each face gets its own UVs and normal.",
+    "Each vertex carries several <b>attributes</b>: a <b style=\"color:var(--red)\">position</b>, a <b style=\"color:var(--green)\">texcoord</b> (the UV) and a <b style=\"color:var(--blue)\">normal</b>.",
+    "The attributes are packed into a <b>vertex buffer</b>, one vertex after another. Each vertex is 32 bytes: position at offset 0, texcoord at 12, normal at 20.",
+    "The vertex shader runs once per vertex and receives it as <code>Input</code>. <b>TEXCOORD0/1/2</b> match the attribute locations 0/1/2 in the pipeline’s vertex input state.",
+    "The shader passes the <b style=\"color:var(--green)\">texcoord</b> straight through. The rasterizer blends it across the triangle, and the pixel shader samples the texture with it."
+  ];
+  const HL=[[],[],[],[[1,6]],[[12,12]]];
+  let k=0, t=0, T=0;
+  const attr=(i,a)=>a===0?D.pos.slice(i*3,i*3+3):a===1?D.uv.slice(i*2,i*2+2):D.nrm.slice(i*3,i*3+3);
+  const f1=v=>(v<0?"−":"")+Math.abs(v).toFixed(1);
+  const xf=(m,p,w=1)=>{ const v=[p[0],p[1],p[2],w], o=[0,0,0,0]; for(let r=0;r<4;r++) for(let c=0;c<4;c++) o[r]+=m[c*4+r]*v[c]; return o; };
+  function rel(el){ const o=ov.getBoundingClientRect(), r=el.getBoundingClientRect(), q=o.width/ov.offsetWidth; return {x:(r.left-o.left)/q,y:(r.top-o.top)/q,w:r.width/q,h:r.height/q}; }
+  function show(){ hlLines(pre,HL[k]); tip.innerHTML=TIPS[k]; }
+  const ease=p=>p<0?0:p>1?1:p*p*(3-2*p);
+  function chip(x,px,py,col,w=26,h=14){ x.shadowColor=col; x.shadowBlur=12; x.fillStyle=col; x.beginPath(); x.roundRect(px-w/2,py-h/2,w,h,4); x.fill(); x.shadowBlur=0; }
+  function fly(x,a,b,p,col,w,h){ const e=ease(p), mx=(a[0]+b[0])/2, my=Math.min(a[1],b[1])-60, u=1-e;
+    chip(x,u*u*a[0]+2*u*e*mx+e*e*b[0],u*u*a[1]+2*u*e*my+e*e*b[1],col,w,h); }
+  function draw(){
+    if(!GL||!P.tex) return noGL(cv); if(!TX.bricks.ready) return;
+    const A=.62+.42*Math.sin(T*.0005), bw=box.offsetWidth, bh=box.offsetHeight;
+    const Mdl=M4.chain(M4.RX(.42),M4.RY(A)), V=M4.lookAt([0,0,7.2],[0,0,0],[0,1,0]), MV=M4.mul(V,Mdl);
+    const MVP=M4.chain(M4.T(.24,k>=2?.14:0,0),M4.persp(.8,bw/bh,.1,50),MV);
+    GL.render(cv,()=>{ GL.bind(0,GL.gl.TEXTURE_2D,TX.bricks.t,SM.r); GL.use(P.tex,{uMVP:MVP,uTiling:[1,1],uOffset:[0,0],uTex:0,uMode:0,uOutline:1}); GL.draw(MESH.cube); });
+    const x=ctxOf(ov), W=ov.offsetWidth, H=ov.offsetHeight; x.clearRect(0,0,W,H);
+    const b=rel(box), scr=i=>{ const c=xf(MVP,attr(i,0)); return [b.x+(c[0]/c[3]*.5+.5)*bw, b.y+(.5-c[1]/c[3]*.5)*bh]; };
+    const vis=i=>xf(MV,attr(i,2),0)[2]>.05;
+    // vertex dots
+    for(let i=0;i<24;i++) if(vis(i)){ const [px,py]=scr(i); dot(x,px,py,i===SEL&&k>=1?7:4.5,k>=1&&i!==SEL?"rgba(255,194,14,.55)":Y,"#0d0d0f"); }
+    // one vertex and its attributes
+    if(k>=1){ const [px,py]=scr(SEL), cx=b.x+18, cy=b.y+56, cw=290, ch=112;
+      x.strokeStyle="rgba(255,194,14,.6)"; x.lineWidth=1.5; x.setLineDash([4,5]); x.beginPath(); x.moveTo(cx+cw,cy+ch/2); x.lineTo(px,py); x.stroke(); x.setLineDash([]);
+      x.beginPath(); x.arc(px,py,12,0,7); x.stroke();
+      x.fillStyle="rgba(20,20,24,.94)"; x.strokeStyle=LINE; x.beginPath(); x.roundRect(cx,cy,cw,ch,12); x.fill(); x.stroke();
+      label(x,"vertex 16",cx+16,cy+24,MUTE,13);
+      NAMES.forEach((n,a)=>{ const v=attr(SEL,a); x.fillStyle=COL[a]; x.fillRect(cx+16,cy+38+a*24,10,12); label(x,n,cx+34,cy+49+a*24,COL[a],14); label(x,`(${v.map(f1).join(", ")})`,cx+128,cy+49+a*24,INK,14); }); }
+    // vertex buffer
+    if(k>=2){ const vy=b.y+bh-160, vx=b.x+20, vw=bw-40, sw=vw/SLOTS.length, sh=34;
+      label(x,"vertex buffer",vx,vy-12,INK,14); label(x,"stride = 32 bytes",vx+vw,vy-12,MUTE,13,"right");
+      const filled=k===2?Math.min(SLOTS.length,Math.floor(t/450)):SLOTS.length, seg=(s,a)=>[vx+s*sw+OFF[a]/32*sw, BYTES[a]/32*sw];
+      const cur=k===3?Math.floor(t/1100)%SLOTS.length:-1;
+      for(let s=0;s<SLOTS.length;s++){ for(let a=0;a<3;a++){ const [sx,w]=seg(s,a); x.fillStyle=s<filled?COL[a]:"#1c1c21"; x.globalAlpha=s<filled?(s===cur||cur<0?1:.45):1; x.fillRect(sx+1,vy,w-2,sh); }
+        x.globalAlpha=1; x.strokeStyle=s===cur?Y:"#0d0d0f"; x.lineWidth=s===cur?2:1; x.strokeRect(vx+s*sw+.5,vy,sw-1,sh); label(x,"v"+SLOTS[s],vx+s*sw+sw/2,vy+sh+18,MUTE,12,"center"); }
+      [0,12,20].forEach(o=>label(x,String(o),vx+o/32*sw+3,vy+sh+36,Y,12,"left")); label(x,"32",vx+sw,vy+sh+36,MUTE,12,"center");
+      if(k===2&&filled<SLOTS.length){ const s=filled, p=(t-s*450)/450, a0=scr(SLOTS[s]); for(let a=0;a<3;a++){ const [sx,w]=seg(s,a); fly(x,a0,[sx+w/2,vy+sh/2],p,COL[a],Math.max(10,w-4),sh-8); } }
+      // into struct Input
+      if(k===3){ const p=(t%1100)/800; for(let a=0;a<3;a++){ const [sx,w]=seg(cur,a), L=rel(pre._lines[2+a]);
+          if(p<1) fly(x,[sx+w/2,vy+sh/2],[L.x+L.w*.62,L.y+L.h/2],p,COL[a],22,12);
+          else { x.globalAlpha=1-(p-1)/.375; x.strokeStyle=COL[a]; x.lineWidth=2; x.strokeRect(L.x+2,L.y,L.w-4,L.h); x.globalAlpha=1; } } } }
+    // texcoord passed on to the output
+    if(k===4){ const a=rel(pre._lines[3]), o=rel(pre._lines[11]), p=(t%1300)/900;
+      x.strokeStyle="rgba(95,214,138,.7)"; x.lineWidth=2; x.strokeRect(a.x+2,a.y,a.w-4,a.h);
+      if(p<1) fly(x,[a.x+a.w*.62,a.y+a.h/2],[o.x+o.w*.55,o.y+o.h/2],p,GREEN,22,12); else { x.strokeStyle=GREEN; x.strokeRect(o.x+2,o.y,o.w-4,o.h); }
+      label(x,"→ to the pixel shader",o.x+o.w-16,o.y+o.h/2+5,GREEN,14,"right"); }
+  }
+  A.vin={ enter(d){ k=d<0?4:0; t=d<0?1e5:0; show(); }, step(){ if(k>=4) return false; k++; t=0; show(); return true; },
+    back(){ if(k<=0) return false; k--; t=1e5; show(); return true; }, tick(dt){ t+=dt; T+=dt; draw(); } };
+})();
+
 /* ---------- CPU → GPU: disk, RAM, bus, VRAM, parallel sampling ---------- */
 (() => {
   const cv=$("cgCv"), lis=[...$("cgSteps").children], key=$("cgKey"), N=8;

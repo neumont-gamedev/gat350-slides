@@ -283,6 +283,20 @@
     <p class="rise" style="--i:2;margin-top:28px">Artists <b class="y">unwrap</b> a model in a 3D tool (Blender, Maya). The UVs are saved in the model file, and you put them in your vertex buffer next to the position and normal.</p>
   </section>
 
+  <!-- 5a vertex input -->
+  <section class="slide" data-id="vin">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE COORDINATES</span>UVs ride along with each vertex</h2>
+    <div id="viWrap" style="position:relative;display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:22px">
+      <div class="stage-box rise" style="--i:1;height:600px" id="viBox"><canvas id="viCv"></canvas><div class="cap">a cube: 24 vertices, 4 per face</div></div>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <pre class="src" data-code="hVin" id="viCode"></pre>
+        <div class="card tip" id="viTip" style="min-height:112px;font-size:19px"></div>
+        <div class="hint">→ follows the vertices into the vertex shader</div>
+      </div>
+      <canvas id="viOv" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3"></canvas>
+    </div>
+  </section>
+
   <!-- 5b cpu to gpu -->
   <section class="slide" data-id="cpu2gpu">
     <h2 class="rise" style="--i:0"><span class="n">THE BIG PICTURE</span>From the CPU to the GPU</h2>
@@ -978,6 +992,21 @@ SamplerState        Sampler : register(s0, space2);
 float4 main(float3 dir : TEXCOORD0) : SV_Target0
 {
     return Cubemap.Sample(Sampler, dir);
+}</script>
+<script type="text/plain" id="hVin">struct Input
+{
+    float3 position : TEXCOORD0;
+    float2 texcoord : TEXCOORD1;
+    float3 normal : TEXCOORD2;
+};
+
+Output main(Input input)
+{
+    Output output;
+    output.position = mul(MVP, float4(input.position, 1.0));
+    output.texcoord = input.texcoord;
+    output.normal = mul((float3x3)Model, input.normal);
+    return output;
 }</script>
 <script type="text/plain" id="hReflV">cbuffer Matrices : register(b0, space1)
 {
