@@ -679,19 +679,19 @@ codeTips($("rvCode"),$("rvTip"),[
 
 /* ---------- tiling and offset ---------- */
 (() => {
-  const cv=$("tlCv"), code=$("tlCode"); let scroll=false, t0=0;
-  const S={}; const upd=()=>setCode(code,`float2 uv = input.TexCoord * Tiling + Offset;\n// Tiling = (${fmt(S.tx.get(),1)}, ${fmt(S.ty.get(),1)})   Offset = (${S.ox.get().toFixed(2)}, ${S.oy.get().toFixed(2)})`);
-  S.tx=slider("tlTx",v=>v.toFixed(1),upd); S.ty=slider("tlTy",v=>v.toFixed(1),upd); S.ox=slider("tlOx",v=>v.toFixed(2),upd); S.oy=slider("tlOy",v=>v.toFixed(2),upd);
+  const cv=$("tlCv"), code=$("tlCode"); let scroll=false, ox=0; // ox kept here: the slider snaps to .01 steps, too coarse for per-frame scrolling
+  const S={}; const upd=()=>setCode(code,`float2 uv = input.TexCoord * Tiling + Offset;\n// Tiling = (${fmt(S.tx.get(),1)}, ${fmt(S.ty.get(),1)})   Offset = (${ox.toFixed(2)}, ${S.oy.get().toFixed(2)})`);
+  S.tx=slider("tlTx",v=>v.toFixed(1),upd); S.ty=slider("tlTy",v=>v.toFixed(1),upd); S.ox=slider("tlOx",v=>v.toFixed(2),v=>{ ox=v; upd(); }); S.oy=slider("tlOy",v=>v.toFixed(2),upd);
   const setS=toggle($("tlScroll"),on=>scroll=on);
   const reset=()=>{ S.tx.set(1); S.ty.set(1); S.ox.set(0); S.oy.set(0); scroll=false; setS(false); };
   $("tlReset").onclick=reset;
   A.tiling={
     enter(){ reset(); upd(); },
     tick(dt){
-      if(scroll){ let v=S.ox.get()+dt*.00015; if(v>1) v-=2; S.ox.set(+v.toFixed(3)); }
+      if(scroll){ ox+=dt*.00015; if(ox>1) ox-=2; $("tlOx").value=ox; $("tlOxO").textContent=ox.toFixed(2); upd(); }
       if(!GL||!P.tex) return noGL(cv); if(!TX.bricks.ready) return;
       GL.render(cv,(w,h)=>{ GL.bind(0,GL.gl.TEXTURE_2D,TX.bricks.t,SM.r);
-        GL.use(P.tex,{uMVP:M4.S(.9*h/w,.9,1),uTiling:[S.tx.get(),S.ty.get()],uOffset:[S.ox.get(),S.oy.get()],uTex:0,uMode:0,uOutline:0}); GL.draw(MESH.quad); });
+        GL.use(P.tex,{uMVP:M4.S(.9*h/w,.9,1),uTiling:[S.tx.get(),S.ty.get()],uOffset:[ox,S.oy.get()],uTex:0,uMode:0,uOutline:0}); GL.draw(MESH.quad); });
     }
   };
 })();
