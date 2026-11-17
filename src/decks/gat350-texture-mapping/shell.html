@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAT350 · Texture Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121214; --panel:#1c1c20; --panel2:#24242a; --line:#2e2e35;
+    --ink:#f3f1ea; --mute:#9b988f; --y:#ffc20e; --amber:#ff8a1f; --red:#ff5a4e; --green:#5fd68a; --blue:#6ab8ff; --purple:#b18cff;
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#000;overflow:hidden;color:var(--ink);font-family:var(--sans)}
+  #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;background:var(--bg);overflow:hidden}
+
+  .slide{position:absolute;inset:0;padding:100px 110px 90px;opacity:0;visibility:hidden;transform:scale(1.015);
+    transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s .6s}
+  .slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s}
+  .rise{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .rise{opacity:1;transform:none;transition-delay:calc(var(--i,0) * 110ms + 150ms)}
+
+  .bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(18,18,20,.5) 0%,rgba(18,18,20,.88) 60%,var(--bg) 100%);pointer-events:none}
+  .content{position:relative;z-index:1;height:100%}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+
+  .eyebrow{font-family:var(--mono);font-size:20px;letter-spacing:.18em;text-transform:uppercase;color:var(--y)}
+  h1{font-size:118px;line-height:.98;font-weight:700;letter-spacing:-.03em;margin:22px 0 34px}
+  h1 span,h2 span.y{color:var(--y)}
+  h2{font-size:56px;font-weight:700;letter-spacing:-.02em;line-height:1.06}
+  h2 .n{font-family:var(--mono);font-size:21px;color:var(--y);font-weight:600;display:block;letter-spacing:.12em;margin-bottom:12px}
+  h3{font-size:26px}
+  .lede{font-size:31px;line-height:1.4;color:#d6d3cb;max-width:1100px}
+  p{font-size:25px;line-height:1.45;color:#d6d3cb}
+  b,strong{color:var(--ink)}
+  .y{color:var(--y)} .mono{font-family:var(--mono)} .muted{color:var(--mute)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px}
+  .pad{padding:22px 24px}
+
+  .bul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .bul li{font-size:24px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:26px}
+  .bul li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;background:var(--y);border-radius:3px}
+  .num{list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:14px}
+  .num li{counter-increment:n;font-size:23px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:44px;transition:color .3s,opacity .3s}
+  .num li::before{content:counter(n);position:absolute;left:0;top:.18em;font-family:var(--mono);font-size:16px;line-height:1.4;color:var(--bg);background:var(--y);border-radius:6px;padding:0 9px}
+  .num.steps li{opacity:.35}
+  .num.steps li.on{opacity:1;color:var(--ink)}
+  .num.steps li.done{opacity:.75}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:64px;height:100%;align-items:center}
+  .two.wide-r{grid-template-columns:.85fr 1.15fr}
+  .stack{display:flex;flex-direction:column;gap:26px}
+  .stage-box{position:relative;height:620px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  .stage-box canvas,.stage-box svg{position:absolute;inset:0;width:100%;height:100%}
+  .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:15px;color:var(--mute);background:rgba(13,13,15,.8);padding:6px 10px;border-radius:8px;z-index:2;pointer-events:none}
+  .cap.top{top:14px;bottom:auto}
+  .cap.r{left:auto;right:18px}
+  .callout{border-left:4px solid var(--y);padding:14px 20px;background:rgba(255,194,14,.07);border-radius:0 12px 12px 0;font-size:22px;line-height:1.45;color:#e5e2da}
+  .callout.red{border-color:var(--red);background:rgba(255,90,78,.07)}
+  .keyIdea{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .keyIdea.on{opacity:1;transform:none}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:500 19px var(--sans);padding:10px 20px;border-radius:10px;cursor:pointer}
+  .btn:hover{border-color:var(--y);color:var(--y)}
+  .btn.on{background:var(--y);color:var(--bg);border-color:var(--y)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}
+  .btn.sm{font-size:16px;padding:8px 14px}
+  .btn.mono{font-family:var(--mono);font-size:15px}
+  .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tag{display:inline-block;font-family:var(--mono);font-size:15px;padding:4px 10px;border-radius:6px;font-weight:600;letter-spacing:.04em}
+  .t-red{background:rgba(255,90,78,.15);color:var(--red)} .t-green{background:rgba(95,214,138,.15);color:var(--green)} .t-blue{background:rgba(106,184,255,.15);color:var(--blue)} .t-y{background:rgba(255,194,14,.15);color:var(--y)}
+  .hint{font-family:var(--mono);font-size:15px;color:var(--mute)}
+  .hint::before{content:"› ";color:var(--y)}
+  code,.code{font-family:var(--mono);color:var(--y);font-size:.9em}
+  .k{font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+
+  /* chrome */
+  #chrome{position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:18px;padding:0 32px;z-index:10;font-family:var(--mono);font-size:16px;color:var(--mute);pointer-events:none}
+  #chrome button{pointer-events:auto}
+  #chrome .sp{flex:1}
+  #brand{position:absolute;left:32px;top:28px;z-index:10;font-family:var(--mono);font-size:15px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+  #brand b{color:var(--y);font-weight:600}
+  #logo{position:absolute;right:32px;top:22px;height:44px;z-index:10;pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+  #progress{position:absolute;left:0;bottom:0;height:4px;background:var(--y);transition:width .5s cubic-bezier(.2,.7,.2,1);z-index:11}
+  .nbtn{background:transparent;border:1px solid var(--line);color:var(--ink);font:inherit;width:40px;height:34px;border-radius:8px;cursor:pointer}
+  .nbtn:hover{border-color:var(--y);color:var(--y)}
+
+  /* live class sync */
+  #livewrap{position:absolute;left:32px;bottom:11px;z-index:12;display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:15px}
+  #livebar,#liveauth{display:flex;gap:12px;align-items:center}
+  #liveauth:empty,#livebar:empty{display:none}
+  .lv{display:inline-flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:6px 14px;font:inherit}
+  button.lv{cursor:pointer} button.lv:hover{border-color:var(--y)}
+  .lv.on{border-color:var(--y);color:var(--y)}
+  .lv .dot{width:9px;height:9px;border-radius:50%;background:#55534d}
+  .lv.on .dot{background:var(--red);box-shadow:0 0 0 0 rgba(255,90,78,.6);animation:lvp 1.6s infinite}
+  @keyframes lvp{70%{box-shadow:0 0 0 8px rgba(255,90,78,0)}100%{box-shadow:0 0 0 0 rgba(255,90,78,0)}}
+  .lvc{color:var(--mute)}
+  .nbtn:disabled{opacity:.25;cursor:not-allowed;border-color:var(--line);color:var(--ink)}
+  #toast{position:absolute;left:50%;bottom:76px;z-index:20;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--panel2);border:1px solid var(--y);color:var(--ink);font-size:20px;padding:12px 22px;border-radius:12px;transition:opacity .3s,transform .3s;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- texture mapping deck ---------- */
+  /* terminology */
+  .termS{display:flex;flex-direction:column;justify-content:center;height:100%;gap:22px;max-width:1250px}
+  .termS .word{font-size:120px;font-weight:700;letter-spacing:-.035em;line-height:.95;color:var(--ink)}
+  .termS .word span{color:var(--y)}
+  .termS .meta{display:flex;gap:22px;align-items:baseline;font-family:var(--mono);font-size:24px;color:var(--mute)}
+  .termS .meta i{font-family:var(--sans);font-style:italic;color:var(--blue)}
+  .termS .def{font-size:34px;line-height:1.38;color:#e5e2da;border-left:5px solid var(--y);padding-left:28px}
+  .termS .def b{color:var(--y)}
+
+  /* code */
+  pre.src{font-family:var(--mono);font-size:17px;line-height:1.5;color:#d6d3cb;background:#0d0d0f;border:1px solid var(--line);border-radius:14px;padding:16px 0;white-space:pre;overflow:hidden;position:relative}
+  pre.src .ln{display:block;padding:0 20px;transition:background .25s,opacity .3s;border-left:3px solid transparent}
+  pre.src.dim .ln{opacity:.38}
+  pre.src .ln.hl{background:rgba(255,194,14,.10);border-left-color:var(--y);opacity:1}
+  pre.src .ln.hov{cursor:default}
+  pre.src .ln.hov:hover{background:rgba(255,255,255,.05)}
+  pre.src .kw{color:var(--blue)} pre.src .ty{color:var(--purple)} pre.src .fn{color:var(--green)} pre.src .s{color:var(--amber)} pre.src .c{color:#6f6c66;font-style:italic} pre.src .nu{color:var(--amber)} pre.src .k2{color:var(--y)} pre.src .sem{color:var(--red)}
+  pre.src.big{font-size:19px}
+  pre.src.sm{font-size:15px}
+  .codeHead{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:14px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .codeHead .tag{text-transform:none}
+  .tip{min-height:120px;padding:20px 24px;font-size:21px;line-height:1.45;color:#d6d3cb}
+  .tip b{color:var(--y)}
+  .tip .k{display:block;margin-bottom:6px}
+
+  /* figures */
+  figure.fig{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  figure.fig img{display:block;width:100%;height:100%;object-fit:contain}
+  figure.fig.cover img{object-fit:cover}
+  figure.fig figcaption{position:absolute;left:10px;bottom:10px;font-family:var(--mono);font-size:14px;padding:5px 10px;border-radius:8px;background:rgba(13,13,15,.85);color:var(--mute)}
+  .figs{display:grid;gap:18px}
+  .eq{display:flex;align-items:center;gap:16px}
+  .eq figure{width:150px;height:150px;flex:none}
+  .eq .op{font-family:var(--mono);font-size:44px;color:var(--y);font-weight:600}
+  .eq.small figure{width:120px;height:120px}
+
+  /* controls */
+  .ctl{display:grid;grid-template-columns:150px 1fr 80px;gap:14px;align-items:center;font-family:var(--mono);font-size:17px;color:var(--mute)}
+  .ctl output{color:var(--y);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:4px;background:#2a2a30;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--y);cursor:pointer;box-shadow:0 0 12px rgba(255,194,14,.5)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--y);cursor:pointer}
+  .readout{font-family:var(--mono);font-size:18px;line-height:1.6;color:#d6d3cb;padding:16px 20px}
+  .readout b{color:var(--y);font-weight:600}
+  .readout .k{display:block;margin-bottom:4px}
+  .grabbable{cursor:grab} .grabbable:active{cursor:grabbing}
+
+  /* uv */
+  .uvGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;height:520px}
+  .uvGrid .stage-box{height:520px}
+
+  /* hover cards */
+  .hcards{display:grid;gap:16px}
+  .hcard{padding:16px 18px;cursor:pointer;transition:border-color .25s,background .25s,transform .25s;display:flex;flex-direction:column;gap:8px}
+  .hcard:hover,.hcard.on{border-color:var(--y);background:rgba(255,194,14,.06);transform:translateY(-3px)}
+  .hcard .nm{font-family:var(--mono);font-size:16px;color:var(--y);font-weight:600}
+  .hcard svg{width:100%;height:120px}
+  .hcard p{font-size:17px;line-height:1.4;color:#c9c6be}
+  .hcard.no{opacity:.45;cursor:default}
+  .hcard.no:hover{transform:none;border-color:var(--line);background:var(--panel)}
+
+  /* tables */
+  table.dt{border-collapse:separate;border-spacing:0;font-family:var(--mono);font-size:17px;width:100%}
+  table.dt th,table.dt td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);transition:background .25s,color .25s}
+  table.dt th{color:var(--mute);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--line)}
+  table.dt td{color:var(--ink)}
+  table.dt td.r,table.dt th.r{text-align:right}
+  table.dt tr.pick{cursor:pointer}
+  table.dt tr.pick:hover td{background:rgba(255,255,255,.04)}
+  table.dt tr.on td{background:rgba(255,194,14,.12);color:var(--y)}
+  table.dt td .sub{font-family:var(--sans);font-size:15px;color:var(--mute)}
+
+  /* pipeline diagram */
+  .pipe{display:flex;flex-direction:column;gap:22px}
+  .pnode{position:relative;padding:10px 16px;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;opacity:.3;transition:opacity .4s,border-color .4s,box-shadow .4s}
+  .pnode.on{opacity:1;border-color:var(--y);box-shadow:0 0 30px rgba(255,194,14,.15)}
+  .pnode.done{opacity:.85}
+  .pnode .ic{font-size:30px;line-height:1}
+  .pnode h3{font-size:19px;font-family:var(--mono)}
+  .pnode p{font-size:15px;line-height:1.3;color:var(--mute)}
+  .pnode:not(:last-child)::after{content:"↓";position:absolute;left:50%;bottom:-23px;transform:translateX(-50%);font-family:var(--mono);font-size:18px;color:var(--mute)}
+
+  /* cube net fold */
+  .cubeScene{position:absolute;inset:0;perspective:1400px;display:grid;place-items:center}
+  .cubeRoot{position:relative;width:150px;height:150px;transform-style:preserve-3d}
+  .face{position:absolute;left:0;top:0;width:150px;height:150px;transform-style:preserve-3d;background-image:url({{IMG:cube-cross.png}});background-size:600px 450px;outline:1px solid rgba(255,194,14,.35);backface-visibility:visible}
+  .face .lab{position:absolute;right:6px;top:6px;font-family:var(--mono);font-size:12px;padding:2px 6px;border-radius:5px;background:rgba(13,13,15,.85);color:var(--y);transform:translateZ(1px)}
+
+  /* cube direction */
+  .netWrap{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:640px;height:480px}
+
+  /* reflect / refract svgs */
+  .fx{font-family:var(--mono);font-size:24px;color:var(--ink)}
+  .fxl{font-family:var(--mono);font-size:21px;line-height:1.7;color:#d6d3cb}
+  .fxl div{opacity:.3;transition:opacity .4s,color .4s}
+  .fxl div.on{opacity:1}
+  .fxl div.cur{color:var(--y)}
+
+  /* recap */
+  .chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:1250px}
+  .chips .tag{font-size:20px;padding:8px 16px}
+
+  .twoCode{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:26px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="logo" src="{{LOGO}}" alt="Neumont University">
+  <div id="brand"><b>GAT350</b> &nbsp;·&nbsp; Texture Mapping</div>
+
+  <!-- 1 title -->
+  <section class="slide" data-id="title">
+    <canvas class="bg" id="tiBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center">
+      <div class="eyebrow rise" style="--i:0">GAT350 · Graphics Programming</div>
+      <h1 class="rise" style="--i:1">Texture <span>Mapping</span></h1>
+      <p class="lede rise" style="--i:2">Wrapping images around geometry: UV coordinates, samplers, mipmaps, material maps, cubemaps and skyboxes, with <b class="y">SDL3 GPU</b> and HLSL.</p>
+    </div>
+  </section>
+
+  <!-- 2 what -->
+  <section class="slide" data-id="what">
+    <div class="two" style="grid-template-columns:1fr 1fr">
+      <div class="stack">
+        <h2 class="rise" style="--i:0"><span class="n">THE IDEA</span>What is texture mapping?</h2>
+        <p class="rise" style="--i:1">Texture mapping adds <b class="y">high-frequency detail</b> (color, roughness, small bumps) to a model by mapping an image onto its surface.</p>
+        <p class="rise" style="--i:2">A wall can be two triangles with a brick photo on it. You don’t need a triangle for every brick.</p>
+        <div class="callout rise" style="--i:3">It started as plain color (“diffuse”) mapping. Today one material uses many maps: albedo, specular, emissive, normal, height, reflection… Each one replaces geometry or lighting work with a lookup.</div>
+      </div>
+      <figure class="fig rise" style="--i:2;height:520px"><img src="{{IMG:robot-wire.gif}}" alt="wireframe robot getting textured"><figcaption>a wireframe model gets its textures</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 3 texel term -->
+  <section class="slide" data-id="t-texel">
+    <div class="termS">
+      <div class="eyebrow rise" style="--i:0">Terminology</div>
+      <div class="word rise" style="--i:1">tex·<span>el</span></div>
+      <div class="meta rise" style="--i:2"><span>/ˈtek-səl/</span><i>noun</i><span>texture + element</span></div>
+      <div class="def rise" style="--i:3">One <b>pixel of a texture</b>. Screen pixels are what you see; texels are what the GPU <b>reads</b> from the image to color them.</div>
+      <p class="rise muted" style="--i:4;font-size:26px">A 1024×1024 texture has about one million texels, no matter how big it appears on screen.</p>
+    </div>
+  </section>
+
+  <!-- 4 uv -->
+  <section class="slide" data-id="uv">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE COORDINATES</span>UV coordinates</h2>
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:34px;margin-top:22px">
+      <div class="uvGrid rise" style="--i:1">
+        <div class="stage-box"><canvas id="uvTex" class="grabbable"></canvas><div class="cap top">texture space (u, v)</div></div>
+        <div class="stage-box"><canvas id="uvOut"></canvas><div class="cap top">triangle on screen</div></div>
+      </div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:22px">Each vertex stores a <b class="y">UV</b>: where in the image that corner reads from. The GPU blends the UVs across the triangle.</p>
+        <p style="font-size:22px">UVs are <b>normalized</b>: 0 to 1 across the image, whatever its size.</p>
+        <div class="hint">drag the three corners on the texture</div>
+        <div class="acts" id="uvPre">
+          <button class="btn sm" data-k="full">whole image</button>
+          <button class="btn sm" data-k="half">zoom in</button>
+          <button class="btn sm" data-k="flip">flip V</button>
+        </div>
+        <div class="callout" style="font-size:19px">In SDL3 GPU (like Direct3D, Vulkan and Metal), <b class="y">(0, 0) is the top-left</b> of the image. OpenGL puts it at the bottom-left, which is why images flip when you port code.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 unwrap -->
+  <section class="slide" data-id="unwrap">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE COORDINATES</span>Every vertex gets a UV</h2>
+    <div class="figs rise" style="--i:1;grid-template-columns:.8fr 1.55fr 1fr;margin-top:30px;height:440px">
+      <figure class="fig" style="background:#d9d9d9"><img src="{{IMG:uv-pyramid.png}}" alt="pyramid with UV coordinates"><figcaption>UVs pick part of the image</figcaption></figure>
+      <figure class="fig" style="background:#d9d9d9"><img src="{{IMG:uv-unwrap.jpg}}" alt="character and its UV unwrap"><figcaption>a 3D model “unwrapped” flat</figcaption></figure>
+      <figure class="fig" style="background:#fff"><img src="{{IMG:house.gif}}" alt="textured house"><figcaption>the result</figcaption></figure>
+    </div>
+    <p class="rise" style="--i:2;margin-top:28px">Artists <b class="y">unwrap</b> a model in a 3D tool (Blender, Maya). The UVs are saved in the model file, and you put them in your vertex buffer next to the position and normal.</p>
+  </section>
+
+  <!-- 6 create -->
+  <section class="slide" data-id="create">
+    <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 1</span>Create the texture</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:34px;margin-top:24px">
+      <pre class="src rise" style="--i:1" data-code="cCreate" id="crCode"></pre>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <ol class="num steps" id="crSteps">
+          <li>Load the image into an <b>SDL_Surface</b> with SDL_image.</li>
+          <li>Convert it to <b class="y">RGBA, 4 bytes per texel</b>. The GPU has no 3-byte RGB format.</li>
+          <li>Describe the texture: type, format, usage, size, layers, mip levels.</li>
+          <li><b class="y">SDL_CreateGPUTexture</b> makes an empty texture in GPU memory.</li>
+        </ol>
+        <div class="callout keyIdea" id="crKey">The texture is <b class="y">empty</b>. Unlike <code>glTexImage2D</code>, creating it doesn’t copy the pixels. That’s the next step.</div>
+        <div class="hint">→ steps through the code</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 upload -->
+  <section class="slide" data-id="upload">
+    <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 2</span>Upload the pixels</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:30px;margin-top:22px">
+      <pre class="src sm rise" style="--i:1" data-code="cUpload" id="upCode"></pre>
+      <div class="stack rise" style="--i:2;gap:12px">
+        <div class="pipe" id="upPipe">
+          <div class="card pnode"><span class="ic">🖼️</span><div><h3>SDL_Surface</h3><p>pixels in normal RAM</p></div><span class="tag t-blue">CPU</span></div>
+          <div class="card pnode"><span class="ic">📦</span><div><h3>Transfer buffer</h3><p>staging memory both can see</p></div><span class="tag t-y">SHARED</span></div>
+          <div class="card pnode"><span class="ic">🚚</span><div><h3>Copy pass</h3><p>a command the GPU runs</p></div><span class="tag t-green">COMMAND</span></div>
+          <div class="card pnode"><span class="ic">🧱</span><div><h3>SDL_GPUTexture</h3><p>GPU memory, ready to sample</p></div><span class="tag t-green">GPU</span></div>
+        </div>
+        <div class="card tip" id="upTip" style="min-height:130px;font-size:19px"></div>
+        <div class="hint">→ follows the pixels from CPU to GPU</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 types -->
+  <section class="slide" data-id="types">
+    <h2 class="rise" style="--i:0"><span class="n">SDL_GPUTextureType</span>Texture types</h2>
+    <div class="hcards rise" style="--i:1;grid-template-columns:repeat(5,1fr);margin-top:30px" id="tyCards"></div>
+    <div class="card tip rise" style="--i:2;margin-top:22px;min-height:150px" id="tyTip"></div>
+    <p class="rise muted" style="--i:3;font-size:19px;margin-top:16px">OpenGL also had 1D, rectangle and buffer textures. SDL3 GPU doesn’t: use a <b>2D</b> texture that is 1 texel tall, or a storage buffer.</p>
+  </section>
+
+  <!-- 9 formats -->
+  <section class="slide" data-id="formats">
+    <h2 class="rise" style="--i:0"><span class="n">SDL_GPUTextureFormat</span>Texture formats</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:34px;margin-top:24px">
+      <div class="card rise" style="--i:1;padding:8px 14px"><table class="dt" id="fmTable"></table></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <div class="card readout" id="fmCalc"></div>
+        <div class="ctl"><span>size</span><input type="range" id="fmSize" min="6" max="12" step="1" value="10"><output id="fmSizeO"></output></div>
+        <div class="callout" style="font-size:19px"><b class="y">_SRGB</b> formats are converted from gamma to linear when sampled. Use them for color images when you light in linear space; use plain <b>UNORM</b> for data (specular, normal maps).</div>
+        <div class="hint">click a format to see the memory it needs</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 hlsl sample -->
+  <section class="slide" data-id="hlsl">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · FRAGMENT SHADER</span>Sampling a texture</h2>
+    <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:34px;margin-top:24px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>textured.frag.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src big" data-code="hSample" id="hsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="hsTip" style="min-height:200px"></div>
+        <div class="card" style="padding:6px 12px"><table class="dt" id="hsReg">
+          <tr><th>resource</th><th>vertex</th><th>fragment</th></tr>
+          <tr><td>textures + samplers</td><td>t#, s# · space0</td><td class="y">t#, s# · space2</td></tr>
+          <tr><td>uniform buffers</td><td>b# · space1</td><td>b# · space3</td></tr>
+        </table></div>
+        <div class="hint">hover a line of the shader</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 sampler -->
+  <section class="slide" data-id="sampler">
+    <h2 class="rise" style="--i:0"><span class="n">SDL_GPUSampler</span>Samplers: how to read the texture</h2>
+    <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:34px;margin-top:24px">
+      <pre class="src big rise" style="--i:1" data-code="cSampler" id="saCode"></pre>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:22px">In OpenGL, filtering and wrapping were settings <i>on the texture</i> (<code>glTexParameteri</code>). In SDL3 GPU they live in a separate <b class="y">sampler</b> object.</p>
+        <p style="font-size:22px">One sampler can be reused with many textures, and one texture can be read with different samplers.</p>
+        <div class="card tip" id="saTip"></div>
+        <div class="hint">hover a setting</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 filtering -->
+  <section class="slide" data-id="filter">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:50px">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">MAG / MIN FILTER</span>Texture filtering</h2>
+        <p class="rise" style="--i:1;font-size:22px">When a texture is stretched, screen pixels fall <b>between</b> texels. The filter decides what color they get.</p>
+        <div class="acts rise" style="--i:2" id="fiMode">
+          <button class="btn mono" data-k="n">SDL_GPU_FILTER_NEAREST</button>
+          <button class="btn mono" data-k="l">SDL_GPU_FILTER_LINEAR</button>
+        </div>
+        <div class="card readout rise" style="--i:3;min-height:150px" id="fiRead"></div>
+        <div class="ctl rise" style="--i:4"><span>zoom</span><input type="range" id="fiZoom" min="1" max="4" step=".05" value="1"><output id="fiZoomO"></output></div>
+        <div class="acts rise" style="--i:4"><button class="btn sm" id="fiGrid">show texel grid</button></div>
+        <div class="hint rise" style="--i:5">hover the image to see which texels a pixel reads</div>
+      </div>
+      <div class="stage-box rise" style="--i:2"><canvas id="fiCv"></canvas><div class="cap" id="fiCap">32 × 24 texture, magnified</div></div>
+    </div>
+  </section>
+
+  <!-- 13 anisotropic -->
+  <section class="slide" data-id="aniso">
+    <h2 class="rise" style="--i:0"><span class="n">FILTERING</span>Nearest, linear, anisotropic</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:24px">
+      <div class="stack rise" style="--i:1;gap:18px">
+        <figure class="fig" style="height:220px;background:#fff"><img src="{{IMG:filter-kinds.png}}" alt="point, linear and anisotropic filter footprints"></figure>
+        <ul class="bul">
+          <li><b class="y">Nearest</b>: use the one closest texel. Blocky, good for pixel art.</li>
+          <li><b class="y">Linear</b>: blend the 4 nearest texels. Smooth.</li>
+          <li><b class="y">Anisotropic</b>: take extra samples along the direction the surface is tilted. Sharp floors and roads at steep angles.</li>
+        </ul>
+      </div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <figure class="fig" style="height:250px"><img src="{{IMG:aniso-road.jpg}}" alt="road without and with 16x anisotropic filtering"></figure>
+        <pre class="src" data-code="cAniso"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 mipmaps -->
+  <section class="slide" data-id="mip">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:44px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">MIPMAPS</span>Smaller copies for far away</h2>
+        <p class="rise" style="--i:1;font-size:21px">A mipmap is a chain of pre-shrunk copies, each <b class="y">half the size</b> of the last. Far surfaces read a small level, so they don’t shimmer.</p>
+        <div class="acts rise" style="--i:2" id="mpMode">
+          <button class="btn sm" data-k="off">no mipmaps</button>
+          <button class="btn sm" data-k="on">mipmaps</button>
+          <button class="btn sm" data-k="lv">color the levels</button>
+        </div>
+        <div class="acts rise" style="--i:2"><button class="btn sm" id="mpAniso">anisotropic 16×</button><button class="btn sm" id="mpMove">camera moving</button></div>
+        <pre class="src sm rise" style="--i:3" data-code="cMip"></pre>
+        <div class="hint rise" style="--i:4">compare the far end of the floor</div>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:1;height:470px"><canvas id="mpCv"></canvas><div class="cap" id="mpCap"></div></div>
+        <div class="rise" style="--i:3;display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:center">
+          <figure class="fig" style="height:130px"><img src="{{IMG:mip-pyramid.jpg}}" alt="mipmap chain 256, 128, 64, 32"></figure>
+          <p style="font-size:18px;color:var(--mute)">256 → 128 → 64 → 32 → … → 1. The whole chain costs only <b class="y">⅓ more</b> memory.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 wrap -->
+  <section class="slide" data-id="wrap">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:50px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">ADDRESS MODE</span>Outside 0 to 1</h2>
+        <p class="rise" style="--i:1;font-size:22px">UVs can go past 0 and 1. The sampler’s <b class="y">address mode</b> decides what you see there.</p>
+        <div class="acts rise" style="--i:2" id="wrMode">
+          <button class="btn mono" data-k="r">REPEAT</button>
+          <button class="btn mono" data-k="m">MIRRORED_REPEAT</button>
+          <button class="btn mono" data-k="c">CLAMP_TO_EDGE</button>
+          <button class="btn mono" disabled title="SDL3 GPU has no border clamp">CLAMP_TO_BORDER</button>
+        </div>
+        <div class="ctl rise" style="--i:3"><span>UV range</span><input type="range" id="wrRange" min="1" max="5" step=".05" value="3"><output id="wrRangeO"></output></div>
+        <pre class="src sm rise" style="--i:4" id="wrCode"></pre>
+        <p class="rise muted" style="--i:5;font-size:18px">OpenGL’s <code>GL_CLAMP_TO_BORDER</code> doesn’t exist in SDL3 GPU, because not every backend supports it.</p>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:2;height:560px"><canvas id="wrCv"></canvas><div class="cap">yellow square = UV 0 to 1</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 tiling -->
+  <section class="slide" data-id="tiling">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:50px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">UV TRANSFORM</span>Tiling and offset</h2>
+        <p class="rise" style="--i:1;font-size:21px">Multiply UVs to <b class="y">tile</b> a texture; add to them to <b class="y">offset</b> (scroll) it. Two uniforms, one line of shader code.</p>
+        <div class="ctl rise" style="--i:2"><span>tiling u</span><input type="range" id="tlTx" min=".5" max="6" step=".1" value="1"><output id="tlTxO"></output></div>
+        <div class="ctl rise" style="--i:2"><span>tiling v</span><input type="range" id="tlTy" min=".5" max="6" step=".1" value="1"><output id="tlTyO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>offset u</span><input type="range" id="tlOx" min="-1" max="1" step=".01" value="0"><output id="tlOxO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>offset v</span><input type="range" id="tlOy" min="-1" max="1" step=".01" value="0"><output id="tlOyO"></output></div>
+        <div class="acts rise" style="--i:4"><button class="btn sm" id="tlScroll">scroll offset (water, lava)</button><button class="btn sm" id="tlReset">reset</button></div>
+        <pre class="src rise" style="--i:4" id="tlCode"></pre>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:2;height:430px"><canvas id="tlCv"></canvas><div class="cap">a quad with REPEAT addressing</div></div>
+        <figure class="fig rise" style="--i:3;height:170px"><img src="{{IMG:repeat-ground.png}}" alt="game ground with a visibly repeating texture" style="object-fit:cover"><figcaption>one small brick texture, repeated across every wall</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 slots -->
+  <section class="slide" data-id="slots">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE UNITS → SAMPLER SLOTS</span>Binding more than one texture</h2>
+    <div class="twoCode">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>C++ · in the render pass</span></div>
+        <pre class="src" data-code="cSlots"></pre>
+      </div>
+      <div class="rise" style="--i:2">
+        <div class="codeHead"><span>HLSL · fragment shader</span></div>
+        <pre class="src" data-code="hSlots"></pre>
+      </div>
+    </div>
+    <p class="rise" style="--i:3;margin-top:22px;font-size:22px">Each <b class="y">slot</b> holds a texture <i>and</i> a sampler: slot 0 is <code>t0</code>/<code>s0</code>, slot 1 is <code>t1</code>/<code>s1</code>. This replaces <code>glActiveTexture(GL_TEXTURE0 + n)</code>. Remember to set <code>num_samplers = 2</code> when you create the shader.</p>
+  </section>
+
+  <!-- 18 multi -->
+  <section class="slide" data-id="multi">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:50px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">MULTI-TEXTURE</span>Combining textures</h2>
+        <div class="eq small rise" style="--i:1">
+          <figure class="fig cover"><img src="{{IMG:bricks.jpg}}" alt="bricks"><figcaption>slot 0</figcaption></figure>
+          <span class="op" id="muOp">×</span>
+          <figure class="fig cover"><img src="{{IMG:grass.jpg}}" alt="grass"><figcaption>slot 1</figcaption></figure>
+          <span class="op">=</span><span class="muted mono" style="font-size:18px">→ demo</span>
+        </div>
+        <div class="acts rise" style="--i:2" id="muMode">
+          <button class="btn sm" data-k="mul">multiply</button>
+          <button class="btn sm" data-k="lerp">lerp (blend)</button>
+          <button class="btn sm" data-k="add">add</button>
+        </div>
+        <div class="ctl rise" style="--i:3" id="muMixRow"><span>blend</span><input type="range" id="muMix" min="0" max="1" step=".01" value=".5"><output id="muMixO"></output></div>
+        <pre class="src rise" style="--i:3" id="muCode"></pre>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:2;height:400px"><canvas id="muCv"></canvas></div>
+        <figure class="fig rise" style="--i:3;height:200px"><img src="{{IMG:multi-terrain.jpg}}" alt="terrain blending grass and dirt textures" style="object-fit:cover"><figcaption>terrain: several ground textures blended</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 albedo -->
+  <section class="slide" data-id="albedo">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:46px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL MAPS · 1</span>Albedo map</h2>
+        <p class="rise" style="--i:1;font-size:21px">The <b class="y">albedo</b> (diffuse) map is the surface’s base color under white light, with no shading baked in. Lighting multiplies it.</p>
+        <div class="eq rise" style="--i:2">
+          <figure class="fig" style="background:#808080"><img src="{{IMG:light-gradient.png}}" alt="light intensity"><figcaption>light</figcaption></figure>
+          <span class="op">×</span>
+          <figure class="fig"><img src="{{IMG:bricks-small.png}}" alt="albedo"><figcaption>albedo</figcaption></figure>
+          <span class="op">=</span>
+          <figure class="fig" style="background:#808080"><img src="{{IMG:albedo-result.png}}" alt="lit result"><figcaption>result</figcaption></figure>
+        </div>
+        <pre class="src sm rise" style="--i:3" data-code="hAlbedo"></pre>
+        <div class="acts rise" style="--i:4" id="alLight"><span class="hint" style="margin-right:6px">light color</span>
+          <button class="btn sm" data-k="w">white</button><button class="btn sm" data-k="o">orange</button><button class="btn sm" data-k="b">blue</button>
+          <button class="btn sm" id="alTex">albedo map on</button>
+        </div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="alCv"></canvas><div class="cap">drag to turn the model</div></div>
+    </div>
+  </section>
+
+  <!-- 20 specular -->
+  <section class="slide" data-id="specular">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:46px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL MAPS · 2</span>Specular map</h2>
+        <p class="rise" style="--i:1;font-size:21px">A grayscale map that says <b class="y">how shiny</b> each texel is. White = strong highlight, black = none. Wet stone shines; dry mortar doesn’t.</p>
+        <div class="acts rise" style="--i:2" id="spMode">
+          <button class="btn sm" data-k="0">no specular</button>
+          <button class="btn sm" data-k="1">same everywhere</button>
+          <button class="btn sm" data-k="2">specular map</button>
+          <button class="btn sm" data-k="3">show the map</button>
+        </div>
+        <pre class="src sm rise" style="--i:3" data-code="hSpec"></pre>
+        <div class="figs rise" style="--i:4;grid-template-columns:1fr 1fr;height:170px">
+          <figure class="fig"><img src="{{IMG:spec-glass.png}}" alt="glass material with specular map" style="object-fit:cover"></figure>
+          <figure class="fig"><img src="{{IMG:spec-crate.jpg}}" alt="brick cube with specular map" style="object-fit:cover"></figure>
+        </div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="spCv"></canvas><div class="cap" id="spCap">drag to turn the model</div></div>
+    </div>
+  </section>
+
+  <!-- 21 emissive -->
+  <section class="slide" data-id="emissive">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:46px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL MAPS · 3</span>Emissive map</h2>
+        <p class="rise" style="--i:1;font-size:21px">Emissive parts <b class="y">give off their own light</b>: screens, neon, lava. The map is <b>added</b> after lighting, so it glows even in the dark.</p>
+        <div class="eq small rise" style="--i:2">
+          <figure class="fig"><img src="{{IMG:scifi-albedo.jpg}}" alt="lit panel"><figcaption>lit</figcaption></figure>
+          <span class="op">+</span>
+          <figure class="fig"><img src="{{IMG:scifi-emissive.jpg}}" alt="emissive map"><figcaption>emissive</figcaption></figure>
+          <span class="op">=</span>
+          <figure class="fig"><img src="{{IMG:scifi-lit.jpg}}" alt="result"><figcaption>result</figcaption></figure>
+        </div>
+        <div class="ctl rise" style="--i:3"><span>light</span><input type="range" id="emLight" min="0" max="1.2" step=".01" value="1"><output id="emLightO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>emissive</span><input type="range" id="emStr" min="0" max="3" step=".01" value="1.5"><output id="emStrO"></output></div>
+        <pre class="src sm rise" style="--i:4" data-code="hEmis"></pre>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="emCv"></canvas><div class="cap">turn the light down</div></div>
+    </div>
+  </section>
+
+  <!-- 22 emissive examples -->
+  <section class="slide" data-id="emexamples">
+    <h2 class="rise" style="--i:0"><span class="n">EMISSIVE</span>Where you’ve seen it</h2>
+    <div class="figs rise" style="--i:1;grid-template-columns:1fr 1fr 1.5fr;margin-top:30px;height:520px">
+      <figure class="fig cover"><img src="{{IMG:emissive-lava-tex.png}}" alt="lava emissive texture"><figcaption>lava emissive map</figcaption></figure>
+      <figure class="fig cover"><img src="{{IMG:emissive-lava.jpg}}" alt="glowing lava ball"><figcaption>on a sphere</figcaption></figure>
+      <figure class="fig cover"><img src="{{IMG:emissive-room.jpg}}" alt="sci-fi room with glowing lights"><figcaption>screens and light strips</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 23 cubemap -->
+  <section class="slide" data-id="cubemap">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr;gap:46px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">SDL_GPU_TEXTURETYPE_CUBE</span>Cubemaps</h2>
+        <p class="rise" style="--i:1;font-size:22px">Six square images, one for each direction along the world axes, that form a cube <b class="y">around</b> the viewer. Used for skyboxes and reflections.</p>
+        <div class="acts rise" style="--i:2"><button class="btn" id="cbFold">fold into a cube</button></div>
+        <pre class="src sm rise" style="--i:3" data-code="cCube"></pre>
+        <div class="hint rise" style="--i:4">drag the cube to turn it</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2" id="cbBox">
+        <div class="cubeScene"><div class="cubeRoot" id="cbRoot"></div></div>
+        <div class="cap">layer numbers = upload order</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24 cube sampling -->
+  <section class="slide" data-id="cubesample">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:46px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">SAMPLING A CUBEMAP</span>A direction, not a UV</h2>
+        <p class="rise" style="--i:1;font-size:21px">A 2D texture is read with a <b>float2</b> UV. A cubemap is read with a <b class="y">float3 direction</b> from the center. The largest component picks the face.</p>
+        <div class="ctl rise" style="--i:2"><span>x</span><input type="range" id="csX" min="-1" max="1" step=".01"><output id="csXO"></output></div>
+        <div class="ctl rise" style="--i:2"><span>y</span><input type="range" id="csY" min="-1" max="1" step=".01"><output id="csYO"></output></div>
+        <div class="ctl rise" style="--i:2"><span>z</span><input type="range" id="csZ" min="-1" max="1" step=".01"><output id="csZO"></output></div>
+        <div class="card readout rise" style="--i:3" id="csRead"></div>
+        <pre class="src sm rise" style="--i:4" data-code="hCubeSample"></pre>
+      </div>
+      <div class="stage-box rise" style="--i:2"><svg id="csSvg" viewBox="0 0 760 620"></svg><div class="cap">click the net to aim the direction there</div></div>
+    </div>
+  </section>
+
+  <!-- 25 skybox -->
+  <section class="slide" data-id="skybox">
+    <h2 class="rise" style="--i:0"><span class="n">CUBEMAPS IN GAMES</span>Skybox</h2>
+    <div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;margin-top:24px">
+      <div class="stack rise" style="--i:1;gap:18px">
+        <p style="font-size:22px">A skybox is a cube that <b class="y">surrounds the camera</b>, textured with a cubemap of far-away scenery: sky, mountains, stars. You get a believable world without modeling any of it.</p>
+        <p style="font-size:22px">It must look <b>infinitely far away</b>: it turns with the camera but never gets closer.</p>
+        <figure class="fig" style="height:260px;background:#c9cbe0"><img src="{{IMG:cubemap-fold.gif}}" alt="six sky images arranged around the axes"><figcaption>six images around the camera</figcaption></figure>
+      </div>
+      <figure class="fig cover rise" style="--i:2;height:560px"><img src="{{IMG:skybox-game.jpg}}" alt="game scene with a skybox"><figcaption>everything past the rocks is the skybox</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 26 skybox demo -->
+  <section class="slide" data-id="skydemo">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:44px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">TRY IT</span>Why the sky never moves</h2>
+        <p class="rise" style="--i:1;font-size:21px">Walk the camera sideways. With the full view matrix the 1-unit sky cube slides past like a small box. Use <b class="y">rotation only</b> and it stays put.</p>
+        <div class="acts rise" style="--i:2" id="skView">
+          <button class="btn sm" data-k="rot">rotation only</button>
+          <button class="btn sm" data-k="full">full view matrix</button>
+        </div>
+        <div class="ctl rise" style="--i:3"><span>walk</span><input type="range" id="skWalk" min="-.9" max=".9" step=".01" value="0"><output id="skWalkO"></output></div>
+        <div class="acts rise" style="--i:4"><button class="btn sm" id="skEdges">show cube edges</button><button class="btn sm" id="skDepth">depth write on</button></div>
+        <p class="rise muted" style="--i:5;font-size:18px">Turn depth writing on: the sky is drawn first and is only 1 unit away, so it hides the crates behind it.</p>
+        <div class="hint rise" style="--i:5">drag the view to look around</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="skCv"></canvas><div class="cap" id="skCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 27 skybox steps -->
+  <section class="slide" data-id="skysteps">
+    <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU</span>Drawing a skybox</h2>
+    <div style="display:grid;grid-template-columns:.85fr 1.15fr;gap:34px;margin-top:24px">
+      <ol class="num steps rise" style="--i:1" id="ssSteps">
+        <li>Load the six images into one <b>CUBE</b> texture (layers 0–5).</li>
+        <li>Make a cube mesh, −1 to 1, around the camera.</li>
+        <li>Give the skybox its own <b>pipeline</b>: depth test on, <b class="y">depth write off</b>.</li>
+        <li>Cull the <b class="y">front</b> faces, so you see the inside of the cube.</li>
+        <li>Draw it <b>first</b>, with the view’s rotation only.</li>
+        <li>Draw the rest of the scene with the normal pipeline.</li>
+      </ol>
+      <pre class="src rise" style="--i:2" data-code="cSky" id="ssCode"></pre>
+    </div>
+  </section>
+
+  <!-- 28 skybox shader -->
+  <section class="slide" data-id="skyshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL</span>Skybox shaders</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:28px;margin-top:22px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>skybox.vert.hlsl</span></div>
+        <pre class="src sm" data-code="hSkyV" id="svCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <div class="codeHead" style="margin-bottom:-6px"><span>skybox.frag.hlsl</span></div>
+        <pre class="src sm" data-code="hSkyF" id="sfCode"></pre>
+        <div class="card tip" id="svTip" style="min-height:170px"></div>
+        <div class="hint">hover the code</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 29 env mapping -->
+  <section class="slide" data-id="envmap">
+    <h2 class="rise" style="--i:0"><span class="n">ENVIRONMENT MAPPING</span>Reflecting the world</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:18px;margin-top:26px;height:400px">
+      <figure class="fig cover rise" style="--i:1"><img src="{{IMG:metal-kart.gif}}" alt="chrome character reflecting the scene"><figcaption>chrome: the classic use</figcaption></figure>
+      <figure class="fig cover rise" style="--i:1"><img src="{{IMG:skybox.gif}}" alt="chrome ball reflecting a garden"><figcaption>a mirror ball</figcaption></figure>
+      <figure class="fig rise" style="--i:2;background:#fff"><img src="{{IMG:envmap-diagram.jpg}}" alt="camera ray reflects off object into skybox"></figure>
+      <figure class="fig rise" style="--i:3;background:#fff"><img src="{{IMG:envmap-reflect.png}}" alt="hand-drawn environment map reflection"></figure>
+    </div>
+    <p class="rise" style="--i:4;margin-top:26px">Instead of tracing real rays, <b class="y">reflect</b> the view direction off the surface normal and use the result to <b>sample the skybox cubemap</b>. Cheap, and it looks like chrome.</p>
+  </section>
+
+  <!-- 30 reflect -->
+  <section class="slide" data-id="reflect">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:46px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">THE MATH</span>reflect(i, n)</h2>
+        <p class="rise" style="--i:1;font-size:21px"><code>dot(n, i)</code> projects <b style="color:var(--blue)">i</b> onto the unit normal <b style="color:var(--green)">n</b>: how far <b style="color:var(--blue)">i</b> goes <i>into</i> the surface. Remove that part twice and it bounces out.</p>
+        <div class="fxl card pad rise" style="--i:2" id="rfLines">
+          <div><span style="color:var(--green)">n</span> · dot(n, i) &nbsp;<span class="muted">← the part of i along n</span></div>
+          <div><span style="color:var(--green)">n</span> · dot(n, i) · 2</div>
+          <div>r = <span style="color:var(--blue)">i</span> − <span style="color:var(--green)">n</span> · dot(n, i) · 2</div>
+        </div>
+        <div class="callout keyIdea" id="rfKey">HLSL has it built in: <code>float3 r = reflect(i, n);</code> The angle in equals the angle out.</div>
+        <div class="hint rise" style="--i:3">→ builds the formula · drag the tip of i</div>
+      </div>
+      <div class="stage-box rise" style="--i:2"><svg id="rfSvg" viewBox="0 0 760 620"></svg></div>
+    </div>
+  </section>
+
+  <!-- 31 reflection shader -->
+  <section class="slide" data-id="reflshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Reflection shader</h2>
+    <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:28px;margin-top:22px">
+      <pre class="src sm rise" style="--i:1" data-code="hReflV" id="rvCode"></pre>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <div class="card tip" id="rvTip" style="min-height:230px"></div>
+        <figure class="fig" style="height:180px"><img src="{{IMG:chrome-figure.png}}" alt="chrome figure reflecting a skybox" style="object-fit:cover"></figure>
+        <div class="hint">hover the code</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 32 refraction -->
+  <section class="slide" data-id="refract">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:40px">
+      <div class="stack" style="gap:14px">
+        <h2 class="rise" style="--i:0"><span class="n">REFRACTION</span>Bending light</h2>
+        <p class="rise" style="--i:1;font-size:20px">Light bends when it enters glass or water. The <b class="y">index of refraction</b> (IOR) says how much: the speed of light in a vacuum ÷ its speed in the material. <b>Snell’s law</b>: n₁ sin θ₁ = n₂ sin θ₂.</p>
+        <div class="acts rise" style="--i:2" id="rrMats"></div>
+        <div class="card readout rise" style="--i:3" id="rrRead"></div>
+        <div class="acts rise" style="--i:3"><button class="btn sm" id="rrSwap">light leaves the material</button></div>
+        <div class="hint rise" style="--i:3">click a material · drag the ray</div>
+      </div>
+      <div class="stage-box rise" style="--i:2"><svg id="rrSvg" viewBox="0 0 760 620"></svg></div>
+    </div>
+  </section>
+
+  <!-- 33 refraction shader -->
+  <section class="slide" data-id="refrshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Refraction shader</h2>
+    <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:28px;margin-top:22px">
+      <pre class="src sm rise" style="--i:1" data-code="hRefrV" id="rrCode"></pre>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <p style="font-size:20px">Same as reflection, with one line changed. <code>refract</code> takes the <b class="y">ratio</b> n₁ / n₂: from air (1.0) into the material.</p>
+        <figure class="fig" style="height:300px;background:#fff"><img src="{{IMG:envmap-refract.png}}" alt="hand-drawn environment map refraction"></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 34 env demo -->
+  <section class="slide" data-id="envdemo">
+    <div class="two" style="grid-template-columns:.75fr 1.25fr;gap:44px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">TRY IT</span>Reflect or refract</h2>
+        <div class="acts rise" style="--i:1" id="evMode">
+          <button class="btn sm" data-k="refl">reflect</button>
+          <button class="btn sm" data-k="refr">refract</button>
+        </div>
+        <div class="acts rise" style="--i:2" id="evShape">
+          <button class="btn sm" data-k="sphere">sphere</button>
+          <button class="btn sm" data-k="cube">cube</button>
+          <button class="btn sm" data-k="torus">torus</button>
+        </div>
+        <div class="ctl rise" style="--i:3" id="evIorRow"><span>IOR</span><input type="range" id="evIor" min="1" max="2.42" step=".01" value="1.33"><output id="evIorO"></output></div>
+        <figure class="fig rise" style="--i:4;height:220px"><img src="{{IMG:refract-figure.png}}" alt="glass figure refracting the background" style="object-fit:cover"><figcaption>glass: refraction through a cubemap</figcaption></figure>
+        <p class="rise muted" style="--i:5;font-size:17px">Simplified demo: one bounce, no Fresnel, calculated per pixel.</p>
+        <div class="hint rise" style="--i:5">drag to orbit the camera</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="evCv"></canvas><div class="cap" id="evCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 35 recap -->
+  <section class="slide" data-id="recap">
+    <canvas class="bg" id="rcBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center" style="gap:30px">
+      <div class="eyebrow rise" style="--i:0">Recap</div>
+      <h2 class="rise" style="--i:1;font-size:80px">Images, <span class="y">wrapped</span> around geometry.</h2>
+      <div class="chips rise" style="--i:2" id="rcChips"></div>
+    </div>
+  </section>
+
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="progress"></div>
+  <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<!-- code listings (plain text, highlighted by app.js) -->
+<script type="text/plain" id="cCreate">// 1. load the image from disk
+SDL_Surface* image = IMG_Load("textures/bricks.png");
+
+// 2. GPU textures need 4 bytes per texel
+SDL_Surface* rgba = SDL_ConvertSurface(image, SDL_PIXELFORMAT_RGBA32);
+SDL_DestroySurface(image);
+
+// 3. describe the texture
+SDL_GPUTextureCreateInfo info{};
+info.type   = SDL_GPU_TEXTURETYPE_2D;
+info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+info.usage  = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+info.width  = rgba->w;
+info.height = rgba->h;
+info.layer_count_or_depth = 1;
+info.num_levels = 1;
+
+// 4. create it (empty for now)
+SDL_GPUTexture* texture = SDL_CreateGPUTexture(device, &info);</script>
+<script type="text/plain" id="cUpload">// staging memory the CPU can write and the GPU can read
+Uint32 size = rgba->w * rgba->h * 4;
+SDL_GPUTransferBufferCreateInfo tbInfo{};
+tbInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+tbInfo.size  = size;
+SDL_GPUTransferBuffer* tb = SDL_CreateGPUTransferBuffer(device, &tbInfo);
+
+void* dst = SDL_MapGPUTransferBuffer(device, tb, false);
+SDL_memcpy(dst, rgba->pixels, size);
+SDL_UnmapGPUTransferBuffer(device, tb);
+
+// record a copy pass: transfer buffer -> texture
+SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(device);
+SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(cmd);
+SDL_GPUTextureTransferInfo src{ tb, 0 };
+SDL_GPUTextureRegion dstRegion{ texture };
+dstRegion.w = rgba->w;  dstRegion.h = rgba->h;  dstRegion.d = 1;
+SDL_UploadToGPUTexture(copy, &src, &dstRegion, false);
+SDL_EndGPUCopyPass(copy);
+SDL_SubmitGPUCommandBuffer(cmd);
+
+SDL_ReleaseGPUTransferBuffer(device, tb);
+SDL_DestroySurface(rgba);</script>
+<script type="text/plain" id="hSample">Texture2D<float4> Texture : register(t0, space2);
+SamplerState      Sampler : register(s0, space2);
+
+struct Input
+{
+    float2 TexCoord : TEXCOORD0;
+};
+
+float4 main(Input input) : SV_Target0
+{
+    return Texture.Sample(Sampler, input.TexCoord);
+}</script>
+<script type="text/plain" id="cSampler">SDL_GPUSamplerCreateInfo s{};
+s.min_filter  = SDL_GPU_FILTER_LINEAR;
+s.mag_filter  = SDL_GPU_FILTER_LINEAR;
+s.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+s.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+s.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+s.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+s.enable_anisotropy = true;
+s.max_anisotropy    = 16.0f;
+s.max_lod = 1000.0f;   // allow every mip level
+
+SDL_GPUSampler* sampler = SDL_CreateGPUSampler(device, &s);</script>
+<script type="text/plain" id="cAniso">s.enable_anisotropy = true;
+s.max_anisotropy    = 16.0f;  // 1 to 16</script>
+<script type="text/plain" id="cMip">info.num_levels = floor(log2(max(w, h))) + 1;
+info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER
+           | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+// after the upload, outside any pass:
+SDL_GenerateMipmapsForGPUTexture(cmd, texture);</script>
+<script type="text/plain" id="cSlots">SDL_GPUTextureSamplerBinding bindings[2] =
+{
+    { bricksTexture, sampler },   // slot 0
+    { grassTexture,  sampler },   // slot 1
+};
+SDL_BindGPUFragmentSamplers(renderPass, 0, bindings, 2);
+
+SDL_DrawGPUIndexedPrimitives(renderPass,
+    indexCount, 1, 0, 0, 0);</script>
+<script type="text/plain" id="hSlots">Texture2D<float4> Texture1 : register(t0, space2);
+Texture2D<float4> Texture2 : register(t1, space2);
+SamplerState      Sampler1 : register(s0, space2);
+SamplerState      Sampler2 : register(s1, space2);
+
+float4 main(Input input) : SV_Target0
+{
+    float4 a = Texture1.Sample(Sampler1, input.TexCoord);
+    float4 b = Texture2.Sample(Sampler2, input.TexCoord);
+    return a * b;
+}</script>
+<script type="text/plain" id="hAlbedo">float4 albedo  = AlbedoMap.Sample(Sampler, input.TexCoord);
+float  NdotL   = max(dot(N, L), 0.0);
+float3 diffuse = LightColor * NdotL * albedo.rgb;</script>
+<script type="text/plain" id="hSpec">float  mask = SpecularMap.Sample(Sampler, input.TexCoord).r;
+float  spec = pow(max(dot(N, H), 0.0), Shininess);
+float3 specular = LightColor * spec * mask;</script>
+<script type="text/plain" id="hEmis">float3 color = ambient + diffuse + specular;
+float3 glow  = EmissiveMap.Sample(Sampler, input.TexCoord).rgb;
+color += glow * EmissiveStrength;   // added, not lit</script>
+<script type="text/plain" id="cCube">info.type   = SDL_GPU_TEXTURETYPE_CUBE;
+info.width  = info.height = faceSize;  // square
+info.layer_count_or_depth = 6;
+// upload each face to its own layer:
+// 0 +X  1 -X  2 +Y  3 -Y  4 +Z  5 -Z
+dstRegion.layer = face;</script>
+<script type="text/plain" id="hCubeSample">TextureCube<float4> Cubemap : register(t0, space2);
+float4 c = Cubemap.Sample(Sampler, direction);</script>
+<script type="text/plain" id="cSky">// skybox pipeline: its own depth + cull settings
+SDL_GPUGraphicsPipelineCreateInfo p{};
+p.depth_stencil_state.enable_depth_test  = true;
+p.depth_stencil_state.enable_depth_write = false;
+p.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+p.rasterizer_state.cull_mode  = SDL_GPU_CULLMODE_FRONT;
+p.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+skyboxPipeline = SDL_CreateGPUGraphicsPipeline(device, &p);
+
+// every frame, inside the render pass
+SDL_BindGPUGraphicsPipeline(pass, skyboxPipeline);
+SDL_GPUTextureSamplerBinding sky{ cubemap, sampler };
+SDL_BindGPUFragmentSamplers(pass, 0, &sky, 1);
+SDL_PushGPUVertexUniformData(cmd, 0, &matrices, sizeof(matrices));
+SDL_DrawGPUIndexedPrimitives(pass, 36, 1, 0, 0, 0);
+
+SDL_BindGPUGraphicsPipeline(pass, scenePipeline);
+// ... draw the models</script>
+<script type="text/plain" id="hSkyV">cbuffer Matrices : register(b0, space1)
+{
+    float4x4 View;
+    float4x4 Projection;
+};
+struct Input  { float3 Position : TEXCOORD0; };
+struct Output
+{
+    float3 TexCoord : TEXCOORD0;
+    float4 Position : SV_Position;
+};
+Output main(Input input)
+{
+    Output output;
+    output.TexCoord = input.Position;
+    float3 dir = mul((float3x3)View, input.Position);
+    float4 pos = mul(Projection, float4(dir, 1.0));
+    output.Position = pos.xyww;
+    return output;
+}</script>
+<script type="text/plain" id="hSkyF">TextureCube<float4> Cubemap : register(t0, space2);
+SamplerState        Sampler : register(s0, space2);
+
+float4 main(float3 dir : TEXCOORD0) : SV_Target0
+{
+    return Cubemap.Sample(Sampler, dir);
+}</script>
+<script type="text/plain" id="hReflV">cbuffer Matrices : register(b0, space1)
+{
+    float4x4 Model;
+    float4x4 View;
+    float4x4 Projection;
+    float3   CameraPosition;
+};
+struct Input
+{
+    float3 Position : TEXCOORD0;
+    float3 Normal   : TEXCOORD2;
+};
+Output main(Input input)
+{
+    Output output;
+    float3 position = mul(Model, float4(input.Position, 1.0)).xyz;
+    float3 normal   = normalize(mul((float3x3)Model, input.Normal));
+    float3 viewDir  = normalize(position - CameraPosition);
+
+    output.TexCoord = reflect(viewDir, normal);
+    output.Position = mul(Projection, mul(View, float4(position, 1.0)));
+    return output;
+}</script>
+<script type="text/plain" id="hRefrV">cbuffer Matrices : register(b0, space1)
+{
+    float4x4 Model;
+    float4x4 View;
+    float4x4 Projection;
+    float3   CameraPosition;
+    float    IOR;              // 1.33 water, 1.52 glass
+};
+Output main(Input input)
+{
+    Output output;
+    float3 position = mul(Model, float4(input.Position, 1.0)).xyz;
+    float3 normal   = normalize(mul((float3x3)Model, input.Normal));
+    float3 viewDir  = normalize(position - CameraPosition);
+
+    // bend into the material instead of bouncing off
+    output.TexCoord = refract(viewDir, normal, 1.0 / IOR);
+    output.Position = mul(Projection, mul(View, float4(position, 1.0)));
+    return output;
+}</script>
+<script>
+{{APP}}
+</script>
+</body>
+</html>

@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="deck-id" content="gat350-texture-mapping">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAT350 · Texture Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121214; --panel:#1c1c20; --panel2:#24242a; --line:#2e2e35;
+    --ink:#f3f1ea; --mute:#9b988f; --y:#ffc20e; --amber:#ff8a1f; --red:#ff5a4e; --green:#5fd68a; --blue:#6ab8ff; --purple:#b18cff;
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#000;overflow:hidden;color:var(--ink);font-family:var(--sans)}
+  #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;background:var(--bg);overflow:hidden}
+
+  .slide{position:absolute;inset:0;padding:100px 110px 90px;opacity:0;visibility:hidden;transform:scale(1.015);
+    transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s .6s}
+  .slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s}
+  .rise{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .rise{opacity:1;transform:none;transition-delay:calc(var(--i,0) * 110ms + 150ms)}
+
+  .bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(18,18,20,.5) 0%,rgba(18,18,20,.88) 60%,var(--bg) 100%);pointer-events:none}
+  .content{position:relative;z-index:1;height:100%}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+
+  .eyebrow{font-family:var(--mono);font-size:20px;letter-spacing:.18em;text-transform:uppercase;color:var(--y)}
+  h1{font-size:118px;line-height:.98;font-weight:700;letter-spacing:-.03em;margin:22px 0 34px}
+  h1 span,h2 span.y{color:var(--y)}
+  h2{font-size:56px;font-weight:700;letter-spacing:-.02em;line-height:1.06}
+  h2 .n{font-family:var(--mono);font-size:21px;color:var(--y);font-weight:600;display:block;letter-spacing:.12em;margin-bottom:12px}
+  h3{font-size:26px}
+  .lede{font-size:31px;line-height:1.4;color:#d6d3cb;max-width:1100px}
+  p{font-size:25px;line-height:1.45;color:#d6d3cb}
+  b,strong{color:var(--ink)}
+  .y{color:var(--y)} .mono{font-family:var(--mono)} .muted{color:var(--mute)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px}
+  .pad{padding:22px 24px}
+
+  .bul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .bul li{font-size:24px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:26px}
+  .bul li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;background:var(--y);border-radius:3px}
+  .num{list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:14px}
+  .num li{counter-increment:n;font-size:23px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:44px;transition:color .3s,opacity .3s}
+  .num li::before{content:counter(n);position:absolute;left:0;top:.18em;font-family:var(--mono);font-size:16px;line-height:1.4;color:var(--bg);background:var(--y);border-radius:6px;padding:0 9px}
+  .num.steps li{opacity:.35}
+  .num.steps li.on{opacity:1;color:var(--ink)}
+  .num.steps li.done{opacity:.75}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:64px;height:100%;align-items:center}
+  .two.wide-r{grid-template-columns:.85fr 1.15fr}
+  .stack{display:flex;flex-direction:column;gap:26px}
+  .stage-box{position:relative;height:620px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  .stage-box canvas,.stage-box svg{position:absolute;inset:0;width:100%;height:100%}
+  .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:15px;color:var(--mute);background:rgba(13,13,15,.8);padding:6px 10px;border-radius:8px;z-index:2;pointer-events:none}
+  .cap.top{top:14px;bottom:auto}
+  .cap.r{left:auto;right:18px}
+  .callout{border-left:4px solid var(--y);padding:14px 20px;background:rgba(255,194,14,.07);border-radius:0 12px 12px 0;font-size:22px;line-height:1.45;color:#e5e2da}
+  .callout.red{border-color:var(--red);background:rgba(255,90,78,.07)}
+  .keyIdea{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .keyIdea.on{opacity:1;transform:none}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:500 19px var(--sans);padding:10px 20px;border-radius:10px;cursor:pointer}
+  .btn:hover{border-color:var(--y);color:var(--y)}
+  .btn.on{background:var(--y);color:var(--bg);border-color:var(--y)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}
+  .btn.sm{font-size:16px;padding:8px 14px}
+  .btn.mono{font-family:var(--mono);font-size:15px}
+  .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tag{display:inline-block;font-family:var(--mono);font-size:15px;padding:4px 10px;border-radius:6px;font-weight:600;letter-spacing:.04em}
+  .t-red{background:rgba(255,90,78,.15);color:var(--red)} .t-green{background:rgba(95,214,138,.15);color:var(--green)} .t-blue{background:rgba(106,184,255,.15);color:var(--blue)} .t-y{background:rgba(255,194,14,.15);color:var(--y)}
+  .hint{font-family:var(--mono);font-size:15px;color:var(--mute)}
+  .hint::before{content:"› ";color:var(--y)}
+  code,.code{font-family:var(--mono);color:var(--y);font-size:.9em}
+  .k{font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+
+  /* chrome */
+  #chrome{position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:18px;padding:0 32px;z-index:10;font-family:var(--mono);font-size:16px;color:var(--mute);pointer-events:none}
+  #chrome button{pointer-events:auto}
+  #chrome .sp{flex:1}
+  #brand{position:absolute;left:32px;top:28px;z-index:10;font-family:var(--mono);font-size:15px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+  #brand b{color:var(--y);font-weight:600}
+  #logo{position:absolute;right:32px;top:22px;height:44px;z-index:10;pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+  #progress{position:absolute;left:0;bottom:0;height:4px;background:var(--y);transition:width .5s cubic-bezier(.2,.7,.2,1);z-index:11}
+  .nbtn{background:transparent;border:1px solid var(--line);color:var(--ink);font:inherit;width:40px;height:34px;border-radius:8px;cursor:pointer}
+  .nbtn:hover{border-color:var(--y);color:var(--y)}
+
+  /* live class sync */
+  #livewrap{position:absolute;left:32px;bottom:11px;z-index:12;display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:15px}
+  #livebar,#liveauth{display:flex;gap:12px;align-items:center}
+  #liveauth:empty,#livebar:empty{display:none}
+  .lv{display:inline-flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:6px 14px;font:inherit}
+  button.lv{cursor:pointer} button.lv:hover{border-color:var(--y)}
+  .lv.on{border-color:var(--y);color:var(--y)}
+  .lv .dot{width:9px;height:9px;border-radius:50%;background:#55534d}
+  .lv.on .dot{background:var(--red);box-shadow:0 0 0 0 rgba(255,90,78,.6);animation:lvp 1.6s infinite}
+  @keyframes lvp{70%{box-shadow:0 0 0 8px rgba(255,90,78,0)}100%{box-shadow:0 0 0 0 rgba(255,90,78,0)}}
+  .lvc{color:var(--mute)}
+  .nbtn:disabled{opacity:.25;cursor:not-allowed;border-color:var(--line);color:var(--ink)}
+  #toast{position:absolute;left:50%;bottom:76px;z-index:20;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--panel2);border:1px solid var(--y);color:var(--ink);font-size:20px;padding:12px 22px;border-radius:12px;transition:opacity .3s,transform .3s;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- texture mapping deck ---------- */
+  /* terminology */
+  .termS{display:flex;flex-direction:column;justify-content:center;height:100%;gap:22px;max-width:1250px}
+  .termS .word{font-size:120px;font-weight:700;letter-spacing:-.035em;line-height:.95;color:var(--ink)}
+  .termS .word span{color:var(--y)}
+  .termS .meta{display:flex;gap:22px;align-items:baseline;font-family:var(--mono);font-size:24px;color:var(--mute)}
+  .termS .meta i{font-family:var(--sans);font-style:italic;color:var(--blue)}
+  .termS .def{font-size:34px;line-height:1.38;color:#e5e2da;border-left:5px solid var(--y);padding-left:28px}
+  .termS .def b{color:var(--y)}
+
+  /* code */
+  pre.src{font-family:var(--mono);font-size:17px;line-height:1.5;color:#d6d3cb;background:#0d0d0f;border:1px solid var(--line);border-radius:14px;padding:16px 0;white-space:pre;overflow:hidden;position:relative}
+  pre.src .ln{display:block;padding:0 20px;transition:background .25s,opacity .3s;border-left:3px solid transparent}
+  pre.src.dim .ln{opacity:.38}
+  pre.src .ln.hl{background:rgba(255,194,14,.10);border-left-color:var(--y);opacity:1}
+  pre.src .ln.hov{cursor:default}
+  pre.src .ln.hov:hover{background:rgba(255,255,255,.05)}
+  pre.src .kw{color:var(--blue)} pre.src .ty{color:var(--purple)} pre.src .fn{color:var(--green)} pre.src .s{color:var(--amber)} pre.src .c{color:#6f6c66;font-style:italic} pre.src .nu{color:var(--amber)} pre.src .k2{color:var(--y)} pre.src .sem{color:var(--red)}
+  pre.src.big{font-size:19px}
+  pre.src.sm{font-size:15px}
+  .codeHead{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:14px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .codeHead .tag{text-transform:none}
+  .tip{min-height:120px;padding:20px 24px;font-size:21px;line-height:1.45;color:#d6d3cb}
+  .tip b{color:var(--y)}
+  .tip .k{display:block;margin-bottom:6px}
+
+  /* figures */
+  figure.fig{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  figure.fig img{display:block;width:100%;height:100%;object-fit:contain}
+  figure.fig.cover img{object-fit:cover}
+  figure.fig figcaption{position:absolute;left:10px;bottom:10px;font-family:var(--mono);font-size:14px;padding:5px 10px;border-radius:8px;background:rgba(13,13,15,.85);color:var(--mute)}
+  .figs{display:grid;gap:18px}
+  .eq{display:flex;align-items:center;gap:16px}
+  .eq figure{width:150px;height:150px;flex:none}
+  .eq .op{font-family:var(--mono);font-size:44px;color:var(--y);font-weight:600}
+  .eq.small figure{width:120px;height:120px}
+
+  /* controls */
+  .ctl{display:grid;grid-template-columns:150px 1fr 80px;gap:14px;align-items:center;font-family:var(--mono);font-size:17px;color:var(--mute)}
+  .ctl output{color:var(--y);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:4px;background:#2a2a30;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--y);cursor:pointer;box-shadow:0 0 12px rgba(255,194,14,.5)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--y);cursor:pointer}
+  .readout{font-family:var(--mono);font-size:18px;line-height:1.6;color:#d6d3cb;padding:16px 20px}
+  .readout b{color:var(--y);font-weight:600}
+  .readout .k{display:block;margin-bottom:4px}
+  .grabbable{cursor:grab} .grabbable:active{cursor:grabbing}
+
+  /* uv */
+  .uvGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;height:520px}
+  .uvGrid .stage-box{height:520px}
+
+  /* hover cards */
+  .hcards{display:grid;gap:16px}
+  .hcard{padding:16px 18px;cursor:pointer;transition:border-color .25s,background .25s,transform .25s;display:flex;flex-direction:column;gap:8px}
+  .hcard:hover,.hcard.on{border-color:var(--y);background:rgba(255,194,14,.06);transform:translateY(-3px)}
+  .hcard .nm{font-family:var(--mono);font-size:16px;color:var(--y);font-weight:600}
+  .hcard svg{width:100%;height:120px}
+  .hcard p{font-size:17px;line-height:1.4;color:#c9c6be}
+  .hcard.no{opacity:.45;cursor:default}
+  .hcard.no:hover{transform:none;border-color:var(--line);background:var(--panel)}
+
+  /* tables */
+  table.dt{border-collapse:separate;border-spacing:0;font-family:var(--mono);font-size:17px;width:100%}
+  table.dt th,table.dt td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);transition:background .25s,color .25s}
+  table.dt th{color:var(--mute);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--line)}
+  table.dt td{color:var(--ink)}
+  table.dt td.r,table.dt th.r{text-align:right}
+  table.dt tr.pick{cursor:pointer}
+  table.dt tr.pick:hover td{background:rgba(255,255,255,.04)}
+  table.dt tr.on td{background:rgba(255,194,14,.12);color:var(--y)}
+  table.dt td .sub{font-family:var(--sans);font-size:15px;color:var(--mute)}
+
+  /* pipeline diagram */
+  .pipe{display:flex;flex-direction:column;gap:22px}
+  .pnode{position:relative;padding:10px 16px;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;opacity:.3;transition:opacity .4s,border-color .4s,box-shadow .4s}
+  .pnode.on{opacity:1;border-color:var(--y);box-shadow:0 0 30px rgba(255,194,14,.15)}
+  .pnode.done{opacity:.85}
+  .pnode .ic{font-size:30px;line-height:1}
+  .pnode h3{font-size:19px;font-family:var(--mono)}
+  .pnode p{font-size:15px;line-height:1.3;color:var(--mute)}
+  .pnode:not(:last-child)::after{content:"↓";position:absolute;left:50%;bottom:-23px;transform:translateX(-50%);font-family:var(--mono);font-size:18px;color:var(--mute)}
+
+  /* cube net fold */
+  .cubeScene{position:absolute;inset:0;perspective:1400px;display:grid;place-items:center}
+  .cubeRoot{position:relative;width:150px;height:150px;transform-style:preserve-3d}
+  .face{position:absolute;left:0;top:0;width:150px;height:150px;transform-style:preserve-3d;background-image:url(img/cube-cross.png);background-size:600px 450px;outline:1px solid rgba(255,194,14,.35);backface-visibility:visible}
+  .face .lab{position:absolute;right:6px;top:6px;font-family:var(--mono);font-size:12px;padding:2px 6px;border-radius:5px;background:rgba(13,13,15,.85);color:var(--y);transform:translateZ(1px)}
+
+  /* cube direction */
+  .netWrap{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:640px;height:480px}
+
+  /* reflect / refract svgs */
+  .fx{font-family:var(--mono);font-size:24px;color:var(--ink)}
+  .fxl{font-family:var(--mono);font-size:21px;line-height:1.7;color:#d6d3cb}
+  .fxl div{opacity:.3;transition:opacity .4s,color .4s}
+  .fxl div.on{opacity:1}
+  .fxl div.cur{color:var(--y)}
+
+  /* recap */
+  .chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:1250px}
+  .chips .tag{font-size:20px;padding:8px 16px}
+
+  .twoCode{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:26px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="logo" src="data:image/png;base64,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" alt="Neumont University">
+  <a id="brand" href="../" title="All slide decks" style="text-decoration:none">← <b>GAT350</b> &nbsp;·&nbsp; Texture Mapping</a>
+
+  <!-- 1 title -->
+  <section class="slide" data-id="title">
+    <canvas class="bg" id="tiBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center">
+      <div class="eyebrow rise" style="--i:0">GAT350 · Graphics Programming</div>
+      <h1 class="rise" style="--i:1">Texture <span>Mapping</span></h1>
+      <p class="lede rise" style="--i:2">Wrapping images around geometry: UV coordinates, samplers, mipmaps, material maps, cubemaps and skyboxes, with <b class="y">SDL3 GPU</b> and HLSL.</p>
+    </div>
+  </section>
+
+  <!-- 2 what -->
+  <section class="slide" data-id="what">
+    <div class="two" style="grid-template-columns:1fr 1fr">
+      <div class="stack">
+        <h2 class="rise" style="--i:0"><span class="n">THE IDEA</span>What is texture mapping?</h2>
+        <p class="rise" style="--i:1">Texture mapping adds <b class="y">high-frequency detail</b> (color, roughness, small bumps) to a model by mapping an image onto its surface.</p>
+        <p class="rise" style="--i:2">A wall can be two triangles with a brick photo on it. You don’t need a triangle for every brick.</p>
+        <div class="callout rise" style="--i:3">It started as plain color (“diffuse”) mapping. Today one material uses many maps: albedo, specular, emissive, normal, height, reflection… Each one replaces geometry or lighting work with a lookup.</div>
+      </div>
+      <figure class="fig rise" style="--i:2;height:520px"><img src="img/robot-wire.gif" alt="wireframe robot getting textured"><figcaption>a wireframe model gets its textures</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 3 texel term -->
+  <section class="slide" data-id="t-texel">
+    <div class="termS">
+      <div class="eyebrow rise" style="--i:0">Terminology</div>
+      <div class="word rise" style="--i:1">tex·<span>el</span></div>
+      <div class="meta rise" style="--i:2"><span>/ˈtek-səl/</span><i>noun</i><span>texture + element</span></div>
+      <div class="def rise" style="--i:3">One <b>pixel of a texture</b>. Screen pixels are what you see; texels are what the GPU <b>reads</b> from the image to color them.</div>
+      <p class="rise muted" style="--i:4;font-size:26px">A 1024×1024 texture has about one million texels, no matter how big it appears on screen.</p>
+    </div>
+  </section>
+
+  <!-- 4 uv -->
+  <section class="slide" data-id="uv">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE COORDINATES</span>UV coordinates</h2>
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:34px;margin-top:22px">
+      <div class="uvGrid rise" style="--i:1">
+        <div class="stage-box"><canvas id="uvTex" class="grabbable"></canvas><div class="cap top">texture space (u, v)</div></div>
+        <div class="stage-box"><canvas id="uvOut"></canvas><div class="cap top">triangle on screen</div></div>
+      </div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:22px">Each vertex stores a <b class="y">UV</b>: where in the image that corner reads from. The GPU blends the UVs across the triangle.</p>
+        <p style="font-size:22px">UVs are <b>normalized</b>: 0 to 1 across the image, whatever its size.</p>
+        <div class="hint">drag the three corners on the texture</div>
+        <div class="acts" id="uvPre">
+          <button class="btn sm" data-k="full">whole image</button>
+          <button class="btn sm" data-k="half">zoom in</button>
+          <button class="btn sm" data-k="flip">flip V</button>
+        </div>
+        <div class="callout" style="font-size:19px">In SDL3 GPU (like Direct3D, Vulkan and Metal), <b class="y">(0, 0) is the top-left</b> of the image. OpenGL puts it at the bottom-left, which is why images flip when you port code.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 unwrap -->
+  <section class="slide" data-id="unwrap">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE COORDINATES</span>Every vertex gets a UV</h2>
+    <div class="figs rise" style="--i:1;grid-template-columns:.8fr 1.55fr 1fr;margin-top:30px;height:440px">
+      <figure class="fig" style="background:#d9d9d9"><img src="img/uv-pyramid.png" alt="pyramid with UV coordinates"><figcaption>UVs pick part of the image</figcaption></figure>
+      <figure class="fig" style="background:#d9d9d9"><img src="img/uv-unwrap.jpg" alt="character and its UV unwrap"><figcaption>a 3D model “unwrapped” flat</figcaption></figure>
+      <figure class="fig" style="background:#fff"><img src="img/house.gif" alt="textured house"><figcaption>the result</figcaption></figure>
+    </div>
+    <p class="rise" style="--i:2;margin-top:28px">Artists <b class="y">unwrap</b> a model in a 3D tool (Blender, Maya). The UVs are saved in the model file, and you put them in your vertex buffer next to the position and normal.</p>
+  </section>
+
+  <!-- 6 create -->
+  <section class="slide" data-id="create">
+    <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 1</span>Create the texture</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:34px;margin-top:24px">
+      <pre class="src rise" style="--i:1" data-code="cCreate" id="crCode"></pre>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <ol class="num steps" id="crSteps">
+          <li>Load the image into an <b>SDL_Surface</b> with SDL_image.</li>
+          <li>Convert it to <b class="y">RGBA, 4 bytes per texel</b>. The GPU has no 3-byte RGB format.</li>
+          <li>Describe the texture: type, format, usage, size, layers, mip levels.</li>
+          <li><b class="y">SDL_CreateGPUTexture</b> makes an empty texture in GPU memory.</li>
+        </ol>
+        <div class="callout keyIdea" id="crKey">The texture is <b class="y">empty</b>. Unlike <code>glTexImage2D</code>, creating it doesn’t copy the pixels. That’s the next step.</div>
+        <div class="hint">→ steps through the code</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 upload -->
+  <section class="slide" data-id="upload">
+    <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU · STEP 2</span>Upload the pixels</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:30px;margin-top:22px">
+      <pre class="src sm rise" style="--i:1" data-code="cUpload" id="upCode"></pre>
+      <div class="stack rise" style="--i:2;gap:12px">
+        <div class="pipe" id="upPipe">
+          <div class="card pnode"><span class="ic">🖼️</span><div><h3>SDL_Surface</h3><p>pixels in normal RAM</p></div><span class="tag t-blue">CPU</span></div>
+          <div class="card pnode"><span class="ic">📦</span><div><h3>Transfer buffer</h3><p>staging memory both can see</p></div><span class="tag t-y">SHARED</span></div>
+          <div class="card pnode"><span class="ic">🚚</span><div><h3>Copy pass</h3><p>a command the GPU runs</p></div><span class="tag t-green">COMMAND</span></div>
+          <div class="card pnode"><span class="ic">🧱</span><div><h3>SDL_GPUTexture</h3><p>GPU memory, ready to sample</p></div><span class="tag t-green">GPU</span></div>
+        </div>
+        <div class="card tip" id="upTip" style="min-height:130px;font-size:19px"></div>
+        <div class="hint">→ follows the pixels from CPU to GPU</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 types -->
+  <section class="slide" data-id="types">
+    <h2 class="rise" style="--i:0"><span class="n">SDL_GPUTextureType</span>Texture types</h2>
+    <div class="hcards rise" style="--i:1;grid-template-columns:repeat(5,1fr);margin-top:30px" id="tyCards"></div>
+    <div class="card tip rise" style="--i:2;margin-top:22px;min-height:150px" id="tyTip"></div>
+    <p class="rise muted" style="--i:3;font-size:19px;margin-top:16px">OpenGL also had 1D, rectangle and buffer textures. SDL3 GPU doesn’t: use a <b>2D</b> texture that is 1 texel tall, or a storage buffer.</p>
+  </section>
+
+  <!-- 9 formats -->
+  <section class="slide" data-id="formats">
+    <h2 class="rise" style="--i:0"><span class="n">SDL_GPUTextureFormat</span>Texture formats</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:34px;margin-top:24px">
+      <div class="card rise" style="--i:1;padding:8px 14px"><table class="dt" id="fmTable"></table></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <div class="card readout" id="fmCalc"></div>
+        <div class="ctl"><span>size</span><input type="range" id="fmSize" min="6" max="12" step="1" value="10"><output id="fmSizeO"></output></div>
+        <div class="callout" style="font-size:19px"><b class="y">_SRGB</b> formats are converted from gamma to linear when sampled. Use them for color images when you light in linear space; use plain <b>UNORM</b> for data (specular, normal maps).</div>
+        <div class="hint">click a format to see the memory it needs</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 hlsl sample -->
+  <section class="slide" data-id="hlsl">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · FRAGMENT SHADER</span>Sampling a texture</h2>
+    <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:34px;margin-top:24px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>textured.frag.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src big" data-code="hSample" id="hsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="hsTip" style="min-height:200px"></div>
+        <div class="card" style="padding:6px 12px"><table class="dt" id="hsReg">
+          <tr><th>resource</th><th>vertex</th><th>fragment</th></tr>
+          <tr><td>textures + samplers</td><td>t#, s# · space0</td><td class="y">t#, s# · space2</td></tr>
+          <tr><td>uniform buffers</td><td>b# · space1</td><td>b# · space3</td></tr>
+        </table></div>
+        <div class="hint">hover a line of the shader</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 sampler -->
+  <section class="slide" data-id="sampler">
+    <h2 class="rise" style="--i:0"><span class="n">SDL_GPUSampler</span>Samplers: how to read the texture</h2>
+    <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:34px;margin-top:24px">
+      <pre class="src big rise" style="--i:1" data-code="cSampler" id="saCode"></pre>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:22px">In OpenGL, filtering and wrapping were settings <i>on the texture</i> (<code>glTexParameteri</code>). In SDL3 GPU they live in a separate <b class="y">sampler</b> object.</p>
+        <p style="font-size:22px">One sampler can be reused with many textures, and one texture can be read with different samplers.</p>
+        <div class="card tip" id="saTip"></div>
+        <div class="hint">hover a setting</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 filtering -->
+  <section class="slide" data-id="filter">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:50px">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">MAG / MIN FILTER</span>Texture filtering</h2>
+        <p class="rise" style="--i:1;font-size:22px">When a texture is stretched, screen pixels fall <b>between</b> texels. The filter decides what color they get.</p>
+        <div class="acts rise" style="--i:2" id="fiMode">
+          <button class="btn mono" data-k="n">SDL_GPU_FILTER_NEAREST</button>
+          <button class="btn mono" data-k="l">SDL_GPU_FILTER_LINEAR</button>
+        </div>
+        <div class="card readout rise" style="--i:3;min-height:150px" id="fiRead"></div>
+        <div class="ctl rise" style="--i:4"><span>zoom</span><input type="range" id="fiZoom" min="1" max="4" step=".05" value="1"><output id="fiZoomO"></output></div>
+        <div class="acts rise" style="--i:4"><button class="btn sm" id="fiGrid">show texel grid</button></div>
+        <div class="hint rise" style="--i:5">hover the image to see which texels a pixel reads</div>
+      </div>
+      <div class="stage-box rise" style="--i:2"><canvas id="fiCv"></canvas><div class="cap" id="fiCap">32 × 24 texture, magnified</div></div>
+    </div>
+  </section>
+
+  <!-- 13 anisotropic -->
+  <section class="slide" data-id="aniso">
+    <h2 class="rise" style="--i:0"><span class="n">FILTERING</span>Nearest, linear, anisotropic</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:24px">
+      <div class="stack rise" style="--i:1;gap:18px">
+        <figure class="fig" style="height:220px;background:#fff"><img src="img/filter-kinds.png" alt="point, linear and anisotropic filter footprints"></figure>
+        <ul class="bul">
+          <li><b class="y">Nearest</b>: use the one closest texel. Blocky, good for pixel art.</li>
+          <li><b class="y">Linear</b>: blend the 4 nearest texels. Smooth.</li>
+          <li><b class="y">Anisotropic</b>: take extra samples along the direction the surface is tilted. Sharp floors and roads at steep angles.</li>
+        </ul>
+      </div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <figure class="fig" style="height:250px"><img src="img/aniso-road.jpg" alt="road without and with 16x anisotropic filtering"></figure>
+        <pre class="src" data-code="cAniso"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 mipmaps -->
+  <section class="slide" data-id="mip">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:44px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">MIPMAPS</span>Smaller copies for far away</h2>
+        <p class="rise" style="--i:1;font-size:21px">A mipmap is a chain of pre-shrunk copies, each <b class="y">half the size</b> of the last. Far surfaces read a small level, so they don’t shimmer.</p>
+        <div class="acts rise" style="--i:2" id="mpMode">
+          <button class="btn sm" data-k="off">no mipmaps</button>
+          <button class="btn sm" data-k="on">mipmaps</button>
+          <button class="btn sm" data-k="lv">color the levels</button>
+        </div>
+        <div class="acts rise" style="--i:2"><button class="btn sm" id="mpAniso">anisotropic 16×</button><button class="btn sm" id="mpMove">camera moving</button></div>
+        <pre class="src sm rise" style="--i:3" data-code="cMip"></pre>
+        <div class="hint rise" style="--i:4">compare the far end of the floor</div>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:1;height:470px"><canvas id="mpCv"></canvas><div class="cap" id="mpCap"></div></div>
+        <div class="rise" style="--i:3;display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:center">
+          <figure class="fig" style="height:130px"><img src="img/mip-pyramid.jpg" alt="mipmap chain 256, 128, 64, 32"></figure>
+          <p style="font-size:18px;color:var(--mute)">256 → 128 → 64 → 32 → … → 1. The whole chain costs only <b class="y">⅓ more</b> memory.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 wrap -->
+  <section class="slide" data-id="wrap">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:50px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">ADDRESS MODE</span>Outside 0 to 1</h2>
+        <p class="rise" style="--i:1;font-size:22px">UVs can go past 0 and 1. The sampler’s <b class="y">address mode</b> decides what you see there.</p>
+        <div class="acts rise" style="--i:2" id="wrMode">
+          <button class="btn mono" data-k="r">REPEAT</button>
+          <button class="btn mono" data-k="m">MIRRORED_REPEAT</button>
+          <button class="btn mono" data-k="c">CLAMP_TO_EDGE</button>
+          <button class="btn mono" disabled title="SDL3 GPU has no border clamp">CLAMP_TO_BORDER</button>
+        </div>
+        <div class="ctl rise" style="--i:3"><span>UV range</span><input type="range" id="wrRange" min="1" max="5" step=".05" value="3"><output id="wrRangeO"></output></div>
+        <pre class="src sm rise" style="--i:4" id="wrCode"></pre>
+        <p class="rise muted" style="--i:5;font-size:18px">OpenGL’s <code>GL_CLAMP_TO_BORDER</code> doesn’t exist in SDL3 GPU, because not every backend supports it.</p>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:2;height:560px"><canvas id="wrCv"></canvas><div class="cap">yellow square = UV 0 to 1</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 tiling -->
+  <section class="slide" data-id="tiling">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:50px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">UV TRANSFORM</span>Tiling and offset</h2>
+        <p class="rise" style="--i:1;font-size:21px">Multiply UVs to <b class="y">tile</b> a texture; add to them to <b class="y">offset</b> (scroll) it. Two uniforms, one line of shader code.</p>
+        <div class="ctl rise" style="--i:2"><span>tiling u</span><input type="range" id="tlTx" min=".5" max="6" step=".1" value="1"><output id="tlTxO"></output></div>
+        <div class="ctl rise" style="--i:2"><span>tiling v</span><input type="range" id="tlTy" min=".5" max="6" step=".1" value="1"><output id="tlTyO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>offset u</span><input type="range" id="tlOx" min="-1" max="1" step=".01" value="0"><output id="tlOxO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>offset v</span><input type="range" id="tlOy" min="-1" max="1" step=".01" value="0"><output id="tlOyO"></output></div>
+        <div class="acts rise" style="--i:4"><button class="btn sm" id="tlScroll">scroll offset (water, lava)</button><button class="btn sm" id="tlReset">reset</button></div>
+        <pre class="src rise" style="--i:4" id="tlCode"></pre>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:2;height:430px"><canvas id="tlCv"></canvas><div class="cap">a quad with REPEAT addressing</div></div>
+        <figure class="fig rise" style="--i:3;height:170px"><img src="img/repeat-ground.png" alt="game ground with a visibly repeating texture" style="object-fit:cover"><figcaption>one small brick texture, repeated across every wall</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 slots -->
+  <section class="slide" data-id="slots">
+    <h2 class="rise" style="--i:0"><span class="n">TEXTURE UNITS → SAMPLER SLOTS</span>Binding more than one texture</h2>
+    <div class="twoCode">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>C++ · in the render pass</span></div>
+        <pre class="src" data-code="cSlots"></pre>
+      </div>
+      <div class="rise" style="--i:2">
+        <div class="codeHead"><span>HLSL · fragment shader</span></div>
+        <pre class="src" data-code="hSlots"></pre>
+      </div>
+    </div>
+    <p class="rise" style="--i:3;margin-top:22px;font-size:22px">Each <b class="y">slot</b> holds a texture <i>and</i> a sampler: slot 0 is <code>t0</code>/<code>s0</code>, slot 1 is <code>t1</code>/<code>s1</code>. This replaces <code>glActiveTexture(GL_TEXTURE0 + n)</code>. Remember to set <code>num_samplers = 2</code> when you create the shader.</p>
+  </section>
+
+  <!-- 18 multi -->
+  <section class="slide" data-id="multi">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:50px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">MULTI-TEXTURE</span>Combining textures</h2>
+        <div class="eq small rise" style="--i:1">
+          <figure class="fig cover"><img src="img/bricks.jpg" alt="bricks"><figcaption>slot 0</figcaption></figure>
+          <span class="op" id="muOp">×</span>
+          <figure class="fig cover"><img src="img/grass.jpg" alt="grass"><figcaption>slot 1</figcaption></figure>
+          <span class="op">=</span><span class="muted mono" style="font-size:18px">→ demo</span>
+        </div>
+        <div class="acts rise" style="--i:2" id="muMode">
+          <button class="btn sm" data-k="mul">multiply</button>
+          <button class="btn sm" data-k="lerp">lerp (blend)</button>
+          <button class="btn sm" data-k="add">add</button>
+        </div>
+        <div class="ctl rise" style="--i:3" id="muMixRow"><span>blend</span><input type="range" id="muMix" min="0" max="1" step=".01" value=".5"><output id="muMixO"></output></div>
+        <pre class="src rise" style="--i:3" id="muCode"></pre>
+      </div>
+      <div class="stack" style="gap:14px">
+        <div class="stage-box rise" style="--i:2;height:400px"><canvas id="muCv"></canvas></div>
+        <figure class="fig rise" style="--i:3;height:200px"><img src="img/multi-terrain.jpg" alt="terrain blending grass and dirt textures" style="object-fit:cover"><figcaption>terrain: several ground textures blended</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 albedo -->
+  <section class="slide" data-id="albedo">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:46px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL MAPS · 1</span>Albedo map</h2>
+        <p class="rise" style="--i:1;font-size:21px">The <b class="y">albedo</b> (diffuse) map is the surface’s base color under white light, with no shading baked in. Lighting multiplies it.</p>
+        <div class="eq rise" style="--i:2">
+          <figure class="fig" style="background:#808080"><img src="img/light-gradient.png" alt="light intensity"><figcaption>light</figcaption></figure>
+          <span class="op">×</span>
+          <figure class="fig"><img src="img/bricks-small.png" alt="albedo"><figcaption>albedo</figcaption></figure>
+          <span class="op">=</span>
+          <figure class="fig" style="background:#808080"><img src="img/albedo-result.png" alt="lit result"><figcaption>result</figcaption></figure>
+        </div>
+        <pre class="src sm rise" style="--i:3" data-code="hAlbedo"></pre>
+        <div class="acts rise" style="--i:4" id="alLight"><span class="hint" style="margin-right:6px">light color</span>
+          <button class="btn sm" data-k="w">white</button><button class="btn sm" data-k="o">orange</button><button class="btn sm" data-k="b">blue</button>
+          <button class="btn sm" id="alTex">albedo map on</button>
+        </div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="alCv"></canvas><div class="cap">drag to turn the model</div></div>
+    </div>
+  </section>
+
+  <!-- 20 specular -->
+  <section class="slide" data-id="specular">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:46px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL MAPS · 2</span>Specular map</h2>
+        <p class="rise" style="--i:1;font-size:21px">A grayscale map that says <b class="y">how shiny</b> each texel is. White = strong highlight, black = none. Wet stone shines; dry mortar doesn’t.</p>
+        <div class="acts rise" style="--i:2" id="spMode">
+          <button class="btn sm" data-k="0">no specular</button>
+          <button class="btn sm" data-k="1">same everywhere</button>
+          <button class="btn sm" data-k="2">specular map</button>
+          <button class="btn sm" data-k="3">show the map</button>
+        </div>
+        <pre class="src sm rise" style="--i:3" data-code="hSpec"></pre>
+        <div class="figs rise" style="--i:4;grid-template-columns:1fr 1fr;height:170px">
+          <figure class="fig"><img src="img/spec-glass.png" alt="glass material with specular map" style="object-fit:cover"></figure>
+          <figure class="fig"><img src="img/spec-crate.jpg" alt="brick cube with specular map" style="object-fit:cover"></figure>
+        </div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="spCv"></canvas><div class="cap" id="spCap">drag to turn the model</div></div>
+    </div>
+  </section>
+
+  <!-- 21 emissive -->
+  <section class="slide" data-id="emissive">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:46px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL MAPS · 3</span>Emissive map</h2>
+        <p class="rise" style="--i:1;font-size:21px">Emissive parts <b class="y">give off their own light</b>: screens, neon, lava. The map is <b>added</b> after lighting, so it glows even in the dark.</p>
+        <div class="eq small rise" style="--i:2">
+          <figure class="fig"><img src="img/scifi-albedo.jpg" alt="lit panel"><figcaption>lit</figcaption></figure>
+          <span class="op">+</span>
+          <figure class="fig"><img src="img/scifi-emissive.jpg" alt="emissive map"><figcaption>emissive</figcaption></figure>
+          <span class="op">=</span>
+          <figure class="fig"><img src="img/scifi-lit.jpg" alt="result"><figcaption>result</figcaption></figure>
+        </div>
+        <div class="ctl rise" style="--i:3"><span>light</span><input type="range" id="emLight" min="0" max="1.2" step=".01" value="1"><output id="emLightO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>emissive</span><input type="range" id="emStr" min="0" max="3" step=".01" value="1.5"><output id="emStrO"></output></div>
+        <pre class="src sm rise" style="--i:4" data-code="hEmis"></pre>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="emCv"></canvas><div class="cap">turn the light down</div></div>
+    </div>
+  </section>
+
+  <!-- 22 emissive examples -->
+  <section class="slide" data-id="emexamples">
+    <h2 class="rise" style="--i:0"><span class="n">EMISSIVE</span>Where you’ve seen it</h2>
+    <div class="figs rise" style="--i:1;grid-template-columns:1fr 1fr 1.5fr;margin-top:30px;height:520px">
+      <figure class="fig cover"><img src="img/emissive-lava-tex.png" alt="lava emissive texture"><figcaption>lava emissive map</figcaption></figure>
+      <figure class="fig cover"><img src="img/emissive-lava.jpg" alt="glowing lava ball"><figcaption>on a sphere</figcaption></figure>
+      <figure class="fig cover"><img src="img/emissive-room.jpg" alt="sci-fi room with glowing lights"><figcaption>screens and light strips</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 23 cubemap -->
+  <section class="slide" data-id="cubemap">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr;gap:46px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">SDL_GPU_TEXTURETYPE_CUBE</span>Cubemaps</h2>
+        <p class="rise" style="--i:1;font-size:22px">Six square images, one for each direction along the world axes, that form a cube <b class="y">around</b> the viewer. Used for skyboxes and reflections.</p>
+        <div class="acts rise" style="--i:2"><button class="btn" id="cbFold">fold into a cube</button></div>
+        <pre class="src sm rise" style="--i:3" data-code="cCube"></pre>
+        <div class="hint rise" style="--i:4">drag the cube to turn it</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2" id="cbBox">
+        <div class="cubeScene"><div class="cubeRoot" id="cbRoot"></div></div>
+        <div class="cap">layer numbers = upload order</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24 cube sampling -->
+  <section class="slide" data-id="cubesample">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:46px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">SAMPLING A CUBEMAP</span>A direction, not a UV</h2>
+        <p class="rise" style="--i:1;font-size:21px">A 2D texture is read with a <b>float2</b> UV. A cubemap is read with a <b class="y">float3 direction</b> from the center. The largest component picks the face.</p>
+        <div class="ctl rise" style="--i:2"><span>x</span><input type="range" id="csX" min="-1" max="1" step=".01"><output id="csXO"></output></div>
+        <div class="ctl rise" style="--i:2"><span>y</span><input type="range" id="csY" min="-1" max="1" step=".01"><output id="csYO"></output></div>
+        <div class="ctl rise" style="--i:2"><span>z</span><input type="range" id="csZ" min="-1" max="1" step=".01"><output id="csZO"></output></div>
+        <div class="card readout rise" style="--i:3" id="csRead"></div>
+        <pre class="src sm rise" style="--i:4" data-code="hCubeSample"></pre>
+      </div>
+      <div class="stage-box rise" style="--i:2"><svg id="csSvg" viewBox="0 0 760 620"></svg><div class="cap">click the net to aim the direction there</div></div>
+    </div>
+  </section>
+
+  <!-- 25 skybox -->
+  <section class="slide" data-id="skybox">
+    <h2 class="rise" style="--i:0"><span class="n">CUBEMAPS IN GAMES</span>Skybox</h2>
+    <div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;margin-top:24px">
+      <div class="stack rise" style="--i:1;gap:18px">
+        <p style="font-size:22px">A skybox is a cube that <b class="y">surrounds the camera</b>, textured with a cubemap of far-away scenery: sky, mountains, stars. You get a believable world without modeling any of it.</p>
+        <p style="font-size:22px">It must look <b>infinitely far away</b>: it turns with the camera but never gets closer.</p>
+        <figure class="fig" style="height:260px;background:#c9cbe0"><img src="img/cubemap-fold.gif" alt="six sky images arranged around the axes"><figcaption>six images around the camera</figcaption></figure>
+      </div>
+      <figure class="fig cover rise" style="--i:2;height:560px"><img src="img/skybox-game.jpg" alt="game scene with a skybox"><figcaption>everything past the rocks is the skybox</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 26 skybox demo -->
+  <section class="slide" data-id="skydemo">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:44px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">TRY IT</span>Why the sky never moves</h2>
+        <p class="rise" style="--i:1;font-size:21px">Walk the camera sideways. With the full view matrix the 1-unit sky cube slides past like a small box. Use <b class="y">rotation only</b> and it stays put.</p>
+        <div class="acts rise" style="--i:2" id="skView">
+          <button class="btn sm" data-k="rot">rotation only</button>
+          <button class="btn sm" data-k="full">full view matrix</button>
+        </div>
+        <div class="ctl rise" style="--i:3"><span>walk</span><input type="range" id="skWalk" min="-.9" max=".9" step=".01" value="0"><output id="skWalkO"></output></div>
+        <div class="acts rise" style="--i:4"><button class="btn sm" id="skEdges">show cube edges</button><button class="btn sm" id="skDepth">depth write on</button></div>
+        <p class="rise muted" style="--i:5;font-size:18px">Turn depth writing on: the sky is drawn first and is only 1 unit away, so it hides the crates behind it.</p>
+        <div class="hint rise" style="--i:5">drag the view to look around</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="skCv"></canvas><div class="cap" id="skCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 27 skybox steps -->
+  <section class="slide" data-id="skysteps">
+    <h2 class="rise" style="--i:0"><span class="n">SDL3 GPU</span>Drawing a skybox</h2>
+    <div style="display:grid;grid-template-columns:.85fr 1.15fr;gap:34px;margin-top:24px">
+      <ol class="num steps rise" style="--i:1" id="ssSteps">
+        <li>Load the six images into one <b>CUBE</b> texture (layers 0–5).</li>
+        <li>Make a cube mesh, −1 to 1, around the camera.</li>
+        <li>Give the skybox its own <b>pipeline</b>: depth test on, <b class="y">depth write off</b>.</li>
+        <li>Cull the <b class="y">front</b> faces, so you see the inside of the cube.</li>
+        <li>Draw it <b>first</b>, with the view’s rotation only.</li>
+        <li>Draw the rest of the scene with the normal pipeline.</li>
+      </ol>
+      <pre class="src rise" style="--i:2" data-code="cSky" id="ssCode"></pre>
+    </div>
+  </section>
+
+  <!-- 28 skybox shader -->
+  <section class="slide" data-id="skyshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL</span>Skybox shaders</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:28px;margin-top:22px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>skybox.vert.hlsl</span></div>
+        <pre class="src sm" data-code="hSkyV" id="svCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <div class="codeHead" style="margin-bottom:-6px"><span>skybox.frag.hlsl</span></div>
+        <pre class="src sm" data-code="hSkyF" id="sfCode"></pre>
+        <div class="card tip" id="svTip" style="min-height:170px"></div>
+        <div class="hint">hover the code</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 29 env mapping -->
+  <section class="slide" data-id="envmap">
+    <h2 class="rise" style="--i:0"><span class="n">ENVIRONMENT MAPPING</span>Reflecting the world</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:18px;margin-top:26px;height:400px">
+      <figure class="fig cover rise" style="--i:1"><img src="img/metal-kart.gif" alt="chrome character reflecting the scene"><figcaption>chrome: the classic use</figcaption></figure>
+      <figure class="fig cover rise" style="--i:1"><img src="img/skybox.gif" alt="chrome ball reflecting a garden"><figcaption>a mirror ball</figcaption></figure>
+      <figure class="fig rise" style="--i:2;background:#fff"><img src="img/envmap-diagram.jpg" alt="camera ray reflects off object into skybox"></figure>
+      <figure class="fig rise" style="--i:3;background:#fff"><img src="img/envmap-reflect.png" alt="hand-drawn environment map reflection"></figure>
+    </div>
+    <p class="rise" style="--i:4;margin-top:26px">Instead of tracing real rays, <b class="y">reflect</b> the view direction off the surface normal and use the result to <b>sample the skybox cubemap</b>. Cheap, and it looks like chrome.</p>
+  </section>
+
+  <!-- 30 reflect -->
+  <section class="slide" data-id="reflect">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr;gap:46px">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">THE MATH</span>reflect(i, n)</h2>
+        <p class="rise" style="--i:1;font-size:21px"><code>dot(n, i)</code> projects <b style="color:var(--blue)">i</b> onto the unit normal <b style="color:var(--green)">n</b>: how far <b style="color:var(--blue)">i</b> goes <i>into</i> the surface. Remove that part twice and it bounces out.</p>
+        <div class="fxl card pad rise" style="--i:2" id="rfLines">
+          <div><span style="color:var(--green)">n</span> · dot(n, i) &nbsp;<span class="muted">← the part of i along n</span></div>
+          <div><span style="color:var(--green)">n</span> · dot(n, i) · 2</div>
+          <div>r = <span style="color:var(--blue)">i</span> − <span style="color:var(--green)">n</span> · dot(n, i) · 2</div>
+        </div>
+        <div class="callout keyIdea" id="rfKey">HLSL has it built in: <code>float3 r = reflect(i, n);</code> The angle in equals the angle out.</div>
+        <div class="hint rise" style="--i:3">→ builds the formula · drag the tip of i</div>
+      </div>
+      <div class="stage-box rise" style="--i:2"><svg id="rfSvg" viewBox="0 0 760 620"></svg></div>
+    </div>
+  </section>
+
+  <!-- 31 reflection shader -->
+  <section class="slide" data-id="reflshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Reflection shader</h2>
+    <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:28px;margin-top:22px">
+      <pre class="src sm rise" style="--i:1" data-code="hReflV" id="rvCode"></pre>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <div class="card tip" id="rvTip" style="min-height:230px"></div>
+        <figure class="fig" style="height:180px"><img src="img/chrome-figure.png" alt="chrome figure reflecting a skybox" style="object-fit:cover"></figure>
+        <div class="hint">hover the code</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 32 refraction -->
+  <section class="slide" data-id="refract">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr;gap:40px">
+      <div class="stack" style="gap:14px">
+        <h2 class="rise" style="--i:0"><span class="n">REFRACTION</span>Bending light</h2>
+        <p class="rise" style="--i:1;font-size:20px">Light bends when it enters glass or water. The <b class="y">index of refraction</b> (IOR) says how much: the speed of light in a vacuum ÷ its speed in the material. <b>Snell’s law</b>: n₁ sin θ₁ = n₂ sin θ₂.</p>
+        <div class="acts rise" style="--i:2" id="rrMats"></div>
+        <div class="card readout rise" style="--i:3" id="rrRead"></div>
+        <div class="acts rise" style="--i:3"><button class="btn sm" id="rrSwap">light leaves the material</button></div>
+        <div class="hint rise" style="--i:3">click a material · drag the ray</div>
+      </div>
+      <div class="stage-box rise" style="--i:2"><svg id="rrSvg" viewBox="0 0 760 620"></svg></div>
+    </div>
+  </section>
+
+  <!-- 33 refraction shader -->
+  <section class="slide" data-id="refrshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Refraction shader</h2>
+    <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:28px;margin-top:22px">
+      <pre class="src sm rise" style="--i:1" data-code="hRefrV" id="rrCode"></pre>
+      <div class="stack rise" style="--i:2;gap:14px">
+        <p style="font-size:20px">Same as reflection, with one line changed. <code>refract</code> takes the <b class="y">ratio</b> n₁ / n₂: from air (1.0) into the material.</p>
+        <figure class="fig" style="height:300px;background:#fff"><img src="img/envmap-refract.png" alt="hand-drawn environment map refraction"></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 34 env demo -->
+  <section class="slide" data-id="envdemo">
+    <div class="two" style="grid-template-columns:.75fr 1.25fr;gap:44px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">TRY IT</span>Reflect or refract</h2>
+        <div class="acts rise" style="--i:1" id="evMode">
+          <button class="btn sm" data-k="refl">reflect</button>
+          <button class="btn sm" data-k="refr">refract</button>
+        </div>
+        <div class="acts rise" style="--i:2" id="evShape">
+          <button class="btn sm" data-k="sphere">sphere</button>
+          <button class="btn sm" data-k="cube">cube</button>
+          <button class="btn sm" data-k="torus">torus</button>
+        </div>
+        <div class="ctl rise" style="--i:3" id="evIorRow"><span>IOR</span><input type="range" id="evIor" min="1" max="2.42" step=".01" value="1.33"><output id="evIorO"></output></div>
+        <figure class="fig rise" style="--i:4;height:220px"><img src="img/refract-figure.png" alt="glass figure refracting the background" style="object-fit:cover"><figcaption>glass: refraction through a cubemap</figcaption></figure>
+        <p class="rise muted" style="--i:5;font-size:17px">Simplified demo: one bounce, no Fresnel, calculated per pixel.</p>
+        <div class="hint rise" style="--i:5">drag to orbit the camera</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="evCv"></canvas><div class="cap" id="evCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 35 recap -->
+  <section class="slide" data-id="recap">
+    <canvas class="bg" id="rcBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center" style="gap:30px">
+      <div class="eyebrow rise" style="--i:0">Recap</div>
+      <h2 class="rise" style="--i:1;font-size:80px">Images, <span class="y">wrapped</span> around geometry.</h2>
+      <div class="chips rise" style="--i:2" id="rcChips"></div>
+    </div>
+  </section>
+
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 16, 11:07 PM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="progress"></div>
+  <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<!-- code listings (plain text, highlighted by app.js) -->
+<script type="text/plain" id="cCreate">// 1. load the image from disk
+SDL_Surface* image = IMG_Load("textures/bricks.png");
+
+// 2. GPU textures need 4 bytes per texel
+SDL_Surface* rgba = SDL_ConvertSurface(image, SDL_PIXELFORMAT_RGBA32);
+SDL_DestroySurface(image);
+
+// 3. describe the texture
+SDL_GPUTextureCreateInfo info{};
+info.type   = SDL_GPU_TEXTURETYPE_2D;
+info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+info.usage  = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+info.width  = rgba->w;
+info.height = rgba->h;
+info.layer_count_or_depth = 1;
+info.num_levels = 1;
+
+// 4. create it (empty for now)
+SDL_GPUTexture* texture = SDL_CreateGPUTexture(device, &info);</script>
+<script type="text/plain" id="cUpload">// staging memory the CPU can write and the GPU can read
+Uint32 size = rgba->w * rgba->h * 4;
+SDL_GPUTransferBufferCreateInfo tbInfo{};
+tbInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+tbInfo.size  = size;
+SDL_GPUTransferBuffer* tb = SDL_CreateGPUTransferBuffer(device, &tbInfo);
+
+void* dst = SDL_MapGPUTransferBuffer(device, tb, false);
+SDL_memcpy(dst, rgba->pixels, size);
+SDL_UnmapGPUTransferBuffer(device, tb);
+
+// record a copy pass: transfer buffer -> texture
+SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(device);
+SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(cmd);
+SDL_GPUTextureTransferInfo src{ tb, 0 };
+SDL_GPUTextureRegion dstRegion{ texture };
+dstRegion.w = rgba->w;  dstRegion.h = rgba->h;  dstRegion.d = 1;
+SDL_UploadToGPUTexture(copy, &src, &dstRegion, false);
+SDL_EndGPUCopyPass(copy);
+SDL_SubmitGPUCommandBuffer(cmd);
+
+SDL_ReleaseGPUTransferBuffer(device, tb);
+SDL_DestroySurface(rgba);</script>
+<script type="text/plain" id="hSample">Texture2D<float4> Texture : register(t0, space2);
+SamplerState      Sampler : register(s0, space2);
+
+struct Input
+{
+    float2 TexCoord : TEXCOORD0;
+};
+
+float4 main(Input input) : SV_Target0
+{
+    return Texture.Sample(Sampler, input.TexCoord);
+}</script>
+<script type="text/plain" id="cSampler">SDL_GPUSamplerCreateInfo s{};
+s.min_filter  = SDL_GPU_FILTER_LINEAR;
+s.mag_filter  = SDL_GPU_FILTER_LINEAR;
+s.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+s.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+s.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+s.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+s.enable_anisotropy = true;
+s.max_anisotropy    = 16.0f;
+s.max_lod = 1000.0f;   // allow every mip level
+
+SDL_GPUSampler* sampler = SDL_CreateGPUSampler(device, &s);</script>
+<script type="text/plain" id="cAniso">s.enable_anisotropy = true;
+s.max_anisotropy    = 16.0f;  // 1 to 16</script>
+<script type="text/plain" id="cMip">info.num_levels = floor(log2(max(w, h))) + 1;
+info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER
+           | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+// after the upload, outside any pass:
+SDL_GenerateMipmapsForGPUTexture(cmd, texture);</script>
+<script type="text/plain" id="cSlots">SDL_GPUTextureSamplerBinding bindings[2] =
+{
+    { bricksTexture, sampler },   // slot 0
+    { grassTexture,  sampler },   // slot 1
+};
+SDL_BindGPUFragmentSamplers(renderPass, 0, bindings, 2);
+
+SDL_DrawGPUIndexedPrimitives(renderPass,
+    indexCount, 1, 0, 0, 0);</script>
+<script type="text/plain" id="hSlots">Texture2D<float4> Texture1 : register(t0, space2);
+Texture2D<float4> Texture2 : register(t1, space2);
+SamplerState      Sampler1 : register(s0, space2);
+SamplerState      Sampler2 : register(s1, space2);
+
+float4 main(Input input) : SV_Target0
+{
+    float4 a = Texture1.Sample(Sampler1, input.TexCoord);
+    float4 b = Texture2.Sample(Sampler2, input.TexCoord);
+    return a * b;
+}</script>
+<script type="text/plain" id="hAlbedo">float4 albedo  = AlbedoMap.Sample(Sampler, input.TexCoord);
+float  NdotL   = max(dot(N, L), 0.0);
+float3 diffuse = LightColor * NdotL * albedo.rgb;</script>
+<script type="text/plain" id="hSpec">float  mask = SpecularMap.Sample(Sampler, input.TexCoord).r;
+float  spec = pow(max(dot(N, H), 0.0), Shininess);
+float3 specular = LightColor * spec * mask;</script>
+<script type="text/plain" id="hEmis">float3 color = ambient + diffuse + specular;
+float3 glow  = EmissiveMap.Sample(Sampler, input.TexCoord).rgb;
+color += glow * EmissiveStrength;   // added, not lit</script>
+<script type="text/plain" id="cCube">info.type   = SDL_GPU_TEXTURETYPE_CUBE;
+info.width  = info.height = faceSize;  // square
+info.layer_count_or_depth = 6;
+// upload each face to its own layer:
+// 0 +X  1 -X  2 +Y  3 -Y  4 +Z  5 -Z
+dstRegion.layer = face;</script>
+<script type="text/plain" id="hCubeSample">TextureCube<float4> Cubemap : register(t0, space2);
+float4 c = Cubemap.Sample(Sampler, direction);</script>
+<script type="text/plain" id="cSky">// skybox pipeline: its own depth + cull settings
+SDL_GPUGraphicsPipelineCreateInfo p{};
+p.depth_stencil_state.enable_depth_test  = true;
+p.depth_stencil_state.enable_depth_write = false;
+p.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+p.rasterizer_state.cull_mode  = SDL_GPU_CULLMODE_FRONT;
+p.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+skyboxPipeline = SDL_CreateGPUGraphicsPipeline(device, &p);
+
+// every frame, inside the render pass
+SDL_BindGPUGraphicsPipeline(pass, skyboxPipeline);
+SDL_GPUTextureSamplerBinding sky{ cubemap, sampler };
+SDL_BindGPUFragmentSamplers(pass, 0, &sky, 1);
+SDL_PushGPUVertexUniformData(cmd, 0, &matrices, sizeof(matrices));
+SDL_DrawGPUIndexedPrimitives(pass, 36, 1, 0, 0, 0);
+
+SDL_BindGPUGraphicsPipeline(pass, scenePipeline);
+// ... draw the models</script>
+<script type="text/plain" id="hSkyV">cbuffer Matrices : register(b0, space1)
+{
+    float4x4 View;
+    float4x4 Projection;
+};
+struct Input  { float3 Position : TEXCOORD0; };
+struct Output
+{
+    float3 TexCoord : TEXCOORD0;
+    float4 Position : SV_Position;
+};
+Output main(Input input)
+{
+    Output output;
+    output.TexCoord = input.Position;
+    float3 dir = mul((float3x3)View, input.Position);
+    float4 pos = mul(Projection, float4(dir, 1.0));
+    output.Position = pos.xyww;
+    return output;
+}</script>
+<script type="text/plain" id="hSkyF">TextureCube<float4> Cubemap : register(t0, space2);
+SamplerState        Sampler : register(s0, space2);
+
+float4 main(float3 dir : TEXCOORD0) : SV_Target0
+{
+    return Cubemap.Sample(Sampler, dir);
+}</script>
+<script type="text/plain" id="hReflV">cbuffer Matrices : register(b0, space1)
+{
+    float4x4 Model;
+    float4x4 View;
+    float4x4 Projection;
+    float3   CameraPosition;
+};
+struct Input
+{
+    float3 Position : TEXCOORD0;
+    float3 Normal   : TEXCOORD2;
+};
+Output main(Input input)
+{
+    Output output;
+    float3 position = mul(Model, float4(input.Position, 1.0)).xyz;
+    float3 normal   = normalize(mul((float3x3)Model, input.Normal));
+    float3 viewDir  = normalize(position - CameraPosition);
+
+    output.TexCoord = reflect(viewDir, normal);
+    output.Position = mul(Projection, mul(View, float4(position, 1.0)));
+    return output;
+}</script>
+<script type="text/plain" id="hRefrV">cbuffer Matrices : register(b0, space1)
+{
+    float4x4 Model;
+    float4x4 View;
+    float4x4 Projection;
+    float3   CameraPosition;
+    float    IOR;              // 1.33 water, 1.52 glass
+};
+Output main(Input input)
+{
+    Output output;
+    float3 position = mul(Model, float4(input.Position, 1.0)).xyz;
+    float3 normal   = normalize(mul((float3x3)Model, input.Normal));
+    float3 viewDir  = normalize(position - CameraPosition);
+
+    // bend into the material instead of bouncing off
+    output.TexCoord = refract(viewDir, normal, 1.0 / IOR);
+    output.Position = mul(Projection, mul(View, float4(position, 1.0)));
+    return output;
+}</script>
+<script>
+(() => {
+"use strict";
+const Y="#ffc20e", BLUE="#6ab8ff", GREEN="#5fd68a", RED="#ff5a4e", AMBER="#ff8a1f", PURPLE="#b18cff", INK="#f3f1ea", MUTE="#9b988f", LINE="#2e2e35";
+const stage=document.getElementById("stage");
+const slides=[...document.querySelectorAll(".slide")];
+const $=id=>document.getElementById(id);
+const NS="http://www.w3.org/2000/svg";
+const svgEl=(tag,attrs={},parent)=>{ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; };
+const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[(Math.random()*a.length)|0];
+const ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+// seeded random, so demos look the same every class
+function srand(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const gauss=r=>{ let u=0,v=0; while(!u) u=r(); while(!v) v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+const fmt=(v,d=2)=>{ const s=(+v).toFixed(d); return s.replace(/\.?0+$/,"")||"0"; };
+const fx=(v,d=2)=>(v<0?"−":"")+Math.abs(v).toFixed(d);
+let cur=-1;
+
+/* ---------- stage + canvas sizing ---------- */
+function fitStage(){
+  const s=Math.min(innerWidth/1600,innerHeight/900);
+  stage.style.transform=`translate(-50%,-50%) scale(${s})`;
+  document.querySelectorAll("canvas").forEach(fitCanvas);
+}
+function fitCanvas(c){
+  if(!c.offsetWidth) return;
+  const r=c.getBoundingClientRect(), dpr=devicePixelRatio||1;
+  const w=Math.max(1,Math.round(r.width*dpr)), h=Math.max(1,Math.round(r.height*dpr));
+  if(c.width!==w||c.height!==h){ c.width=w; c.height=h; }
+  c._k=c.width/c.offsetWidth;
+}
+function ctxOf(c){ const x=c.getContext("2d"); x.setTransform(c._k||1,0,0,c._k||1,0,0); return x; }
+// pointer position in an element's own (unscaled) pixels
+function localXY(e,el){ const r=el.getBoundingClientRect(), k=r.width/el.offsetWidth; return [(e.clientX-r.left)/k,(e.clientY-r.top)/k]; }
+function svgXY(e,svg){ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; const q=p.matrixTransform(svg.getScreenCTM().inverse()); return [q.x,q.y]; }
+function tabs(el,cb){ el.querySelectorAll("button[data-k]").forEach(b=>b.onclick=()=>{ set(b.dataset.k); cb(b.dataset.k); }); function set(k){ el.querySelectorAll("button[data-k]").forEach(b=>b.classList.toggle("on",b.dataset.k===k)); } return set; }
+function toggle(btn,cb){ btn.onclick=()=>{ const on=!btn.classList.contains("on"); btn.classList.toggle("on",on); cb(on); }; return on=>{ btn.classList.toggle("on",on); }; }
+function slider(id,fmtf,cb){ const el=$(id), out=$(id+"O"); const upd=()=>{ if(out) out.textContent=fmtf(+el.value); cb&&cb(+el.value); }; el.addEventListener("input",upd); return { get:()=>+el.value, set:v=>{ el.value=v; upd(); } }; }
+const A={};
+
+/* shared canvas helpers */
+function label(x,t,px,py,col=MUTE,size=14,align="left",font="JetBrains Mono"){ x.fillStyle=col; x.font=`${size}px "${font}",monospace`; x.textAlign=align; x.fillText(t,px,py); x.textAlign="left"; }
+function dot(x,px,py,r,fill,stroke){ x.beginPath(); x.arc(px,py,r,0,7); if(fill){ x.fillStyle=fill; x.fill(); } if(stroke){ x.strokeStyle=stroke; x.lineWidth=2; x.stroke(); } }
+function img(src){ const im=new Image(); im.decoding="async"; im.src=src; return im; }
+function whenLoaded(im,cb){ if(im.complete&&im.naturalWidth) cb(); else im.addEventListener("load",cb,{once:true}); }
+function arrowSvg(g,x1,y1,x2,y2,col,w=4,dash){
+  const a=Math.atan2(y2-y1,x2-x1), h=16;
+  svgEl("line",{x1,y1,x2:x2-Math.cos(a)*h*.6,y2:y2-Math.sin(a)*h*.6,stroke:col,"stroke-width":w,"stroke-linecap":"round","stroke-dasharray":dash||""},g);
+  svgEl("path",{d:`M${x2},${y2} L${x2-Math.cos(a-.4)*h},${y2-Math.sin(a-.4)*h} L${x2-Math.cos(a+.4)*h},${y2-Math.sin(a+.4)*h}Z`,fill:col},g);
+}
+function textSvg(g,t,x,y,col=INK,size=20,anchor="start",weight=500){ const e=svgEl("text",{x,y,fill:col,"font-size":size,"font-family":"JetBrains Mono, monospace","text-anchor":anchor,"font-weight":weight},g); e.textContent=t; return e; }
+
+/* ---------- images ---------- */
+const IM={
+  stones:img("img/stones.jpg"), bricks:img("img/bricks.jpg"), grass:img("img/grass.jpg"), kitten:img("img/kitten-filter.png"),
+  scifi:img("img/scifi-albedo.jpg"), scifiE:img("img/scifi-emissive.jpg"), sky:img("img/sky-cross.jpg")
+};
+
+/* ---------- code listings: highlight + line helpers ---------- */
+const KW=new Set("struct return void const if else for while true false cbuffer register in out".split(" "));
+const TY=/^(float|float2|float3|float4|float3x3|float4x4|int|uint|bool|Uint32|Texture2D|TextureCube|SamplerState|SDL_[A-Z][A-Za-z]*[a-z][A-Za-z]*|Input|Output)$/;
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function highlight(src){
+  return src.split("\n").map(line=>{
+    let out="", m; const re=/(\/\/.*$)|("[^"]*")|(\b\d+(?:\.\d+)?f?\b)|([A-Za-z_][A-Za-z0-9_]*)|([^A-Za-z0-9_"\/]+|\/)/g;
+    while((m=re.exec(line))){
+      if(m[1]) out+=`<span class="c">${esc(m[1])}</span>`;
+      else if(m[2]) out+=`<span class="s">${esc(m[2])}</span>`;
+      else if(m[3]) out+=`<span class="nu">${m[3]}</span>`;
+      else if(m[4]){ const w=m[4], next=line.slice(re.lastIndex).trimStart()[0];
+        if(KW.has(w)) out+=`<span class="kw">${w}</span>`;
+        else if(/^(SV_\w+|TEXCOORD\d)$/.test(w)) out+=`<span class="sem">${w}</span>`;
+        else if(/^SDL_[A-Z0-9_]+$/.test(w)) out+=`<span class="k2">${w}</span>`;
+        else if(TY.test(w)) out+=`<span class="ty">${w}</span>`;
+        else if(next==="(") out+=`<span class="fn">${w}</span>`;
+        else out+=w; }
+      else out+=esc(m[5]);
+    }
+    return `<span class="ln">${out||" "}</span>`;
+  }).join("");
+}
+function setCode(pre,src){ pre.innerHTML=highlight(src); pre._lines=[...pre.querySelectorAll(".ln")]; }
+document.querySelectorAll("pre.src[data-code]").forEach(p=>setCode(p,$(p.dataset.code).textContent));
+// highlight line ranges [[a,b],...] (1-based); empty = no dimming
+function hlLines(pre,ranges){
+  pre.classList.toggle("dim",ranges.length>0);
+  pre._lines.forEach((l,i)=>l.classList.toggle("hl",ranges.some(([a,b])=>i+1>=a&&i+1<=b)));
+}
+// hover a line to explain it: tips = [[a,b,html],...], the smallest matching range wins
+function codeTips(pre,tipEl,tips,idle){
+  tipEl.innerHTML=idle;
+  pre._lines.forEach((l,i)=>{
+    const n=i+1, cands=tips.filter(t=>n>=t[0]&&n<=t[1]).sort((p,q)=>(p[1]-p[0])-(q[1]-q[0]));
+    if(!cands.length) return;
+    l.classList.add("hov");
+    l.addEventListener("mouseenter",()=>{ const t=cands[0]; hlLines(pre,[[t[0],t[1]]]); tipEl.innerHTML=t[2]; });
+  });
+  pre.addEventListener("mouseleave",()=>{ hlLines(pre,[]); tipEl.innerHTML=idle; });
+}
+
+/* ---------- tiny mat4 / vec3 library (column-major, like glm) ---------- */
+const V3={ sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]], norm:a=>{ const l=Math.hypot(...a)||1; return a.map(v=>v/l); } };
+const M4={
+  id:()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),
+  mul(a,b){ const o=new Float32Array(16); for(let c=0;c<4;c++) for(let r=0;r<4;r++){ let s=0; for(let k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k]; o[c*4+r]=s; } return o; },
+  persp(fy,asp,n,f){ const t=1/Math.tan(fy/2), o=new Float32Array(16); o[0]=t/asp; o[5]=t; o[10]=(f+n)/(n-f); o[11]=-1; o[14]=2*f*n/(n-f); return o; },
+  lookAt(e,c,up){ const z=V3.norm(V3.sub(e,c)), x=V3.norm(V3.cross(up,z)), y=V3.cross(z,x);
+    return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -V3.dot(x,e),-V3.dot(y,e),-V3.dot(z,e),1]); },
+  T(x,y,z){ const o=M4.id(); o[12]=x; o[13]=y; o[14]=z; return o; },
+  S(x,y=x,z=x){ const o=M4.id(); o[0]=x; o[5]=y; o[10]=z; return o; },
+  RX(a){ const c=Math.cos(a), s=Math.sin(a), o=M4.id(); o[5]=c; o[6]=s; o[9]=-s; o[10]=c; return o; },
+  RY(a){ const c=Math.cos(a), s=Math.sin(a), o=M4.id(); o[0]=c; o[2]=-s; o[8]=s; o[10]=c; return o; },
+  rotOnly(m){ const o=new Float32Array(m); o[12]=o[13]=o[14]=0; return o; },   // like (float3x3)View
+  chain:(...ms)=>ms.reduce((a,b)=>M4.mul(a,b))
+};
+
+/* ---------- cube faces: one shared convention for the net, the direction demo and the WebGL skybox ----------
+   camera looks down −Z (glm default): front = −Z. r/u = right and up as seen from inside the cube. cell = place in the 4×3 cross */
+const FACES=[
+  {k:"px",axis:"+X",name:"right", n:[1,0,0], r:[0,0,1],  u:[0,1,0],  cell:[2,1],layer:0},
+  {k:"nx",axis:"−X",name:"left",  n:[-1,0,0],r:[0,0,-1], u:[0,1,0],  cell:[0,1],layer:1},
+  {k:"py",axis:"+Y",name:"top",   n:[0,1,0], r:[1,0,0],  u:[0,0,1],  cell:[1,0],layer:2},
+  {k:"ny",axis:"−Y",name:"bottom",n:[0,-1,0],r:[1,0,0],  u:[0,0,-1], cell:[1,2],layer:3},
+  {k:"pz",axis:"+Z",name:"back",  n:[0,0,1], r:[-1,0,0], u:[0,1,0],  cell:[3,1],layer:4},
+  {k:"nz",axis:"−Z",name:"front", n:[0,0,-1],r:[1,0,0],  u:[0,1,0],  cell:[1,1],layer:5}
+];
+function faceOf(d){ const ax=d.map(Math.abs), i=ax[0]>=ax[1]&&ax[0]>=ax[2]?0:ax[1]>=ax[2]?1:2; const f=FACES[i*2+(d[i]<0?1:0)];
+  const m=ax[i]||1, p=d.map(v=>v/m), u=V3.dot(p,f.r), v=V3.dot(p,f.u); return {f,px:(u+1)/2,py:(1-v)/2,major:i,m}; }
+
+/* ---------- one shared WebGL2 context, copied into each demo's 2D canvas ---------- */
+const GL=(()=>{
+  const cv=document.createElement("canvas");
+  const gl=cv.getContext("webgl2",{antialias:true,preserveDrawingBuffer:true,alpha:false});
+  if(!gl){ console.warn("WebGL2 not available"); return null; }
+  const AN=gl.getExtension("EXT_texture_filter_anisotropic");
+  const SETTER={[gl.FLOAT]:"uniform1f",[gl.FLOAT_VEC2]:"uniform2fv",[gl.FLOAT_VEC3]:"uniform3fv",[gl.FLOAT_VEC4]:"uniform4fv",[gl.INT]:"uniform1i",[gl.BOOL]:"uniform1i",[gl.SAMPLER_2D]:"uniform1i",[gl.SAMPLER_CUBE]:"uniform1i"};
+  function program(vs,fs){
+    const p=gl.createProgram();
+    for(const [t,s] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){ const sh=gl.createShader(t); gl.shaderSource(sh,"#version 300 es\nprecision highp float;\n"+s); gl.compileShader(sh);
+      if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); gl.attachShader(p,sh); }
+    gl.bindAttribLocation(p,0,"aPos"); gl.bindAttribLocation(p,1,"aUV"); gl.bindAttribLocation(p,2,"aNrm");
+    gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const U={}; for(let i=0;i<gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);i++){ const a=gl.getActiveUniform(p,i); U[a.name]={loc:gl.getUniformLocation(p,a.name),type:a.type}; }
+    return {p,U};
+  }
+  function use(pr,u){ gl.useProgram(pr.p); for(const k in u){ const e=pr.U[k]; if(!e) continue; const v=u[k];
+    if(e.type===gl.FLOAT_MAT4) gl.uniformMatrix4fv(e.loc,false,v); else gl[SETTER[e.type]](e.loc,typeof v==="boolean"?+v:v); } }
+  function mesh(d,mode){
+    const vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+    [[0,d.pos,3],[1,d.uv,2],[2,d.nrm,3]].forEach(([loc,arr,n])=>{ if(!arr) return; const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(arr),gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0); });
+    const ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint32Array(d.idx),gl.STATIC_DRAW);
+    gl.bindVertexArray(null); return {vao,count:d.idx.length,mode:mode??gl.TRIANGLES};
+  }
+  function draw(m){ gl.bindVertexArray(m.vao); gl.drawElements(m.mode,m.count,gl.UNSIGNED_INT,0); }
+  // samplers are separate objects in WebGL2 too: the same idea as SDL_GPUSampler
+  function sampler({min="mip",mag="linear",wrap="repeat",aniso=1}={}){
+    const s=gl.createSampler(), W={repeat:gl.REPEAT,mirror:gl.MIRRORED_REPEAT,clamp:gl.CLAMP_TO_EDGE}[wrap];
+    gl.samplerParameteri(s,gl.TEXTURE_MIN_FILTER,{mip:gl.LINEAR_MIPMAP_LINEAR,linear:gl.LINEAR,nearest:gl.NEAREST}[min]);
+    gl.samplerParameteri(s,gl.TEXTURE_MAG_FILTER,mag==="nearest"?gl.NEAREST:gl.LINEAR);
+    for(const p of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T,gl.TEXTURE_WRAP_R]) gl.samplerParameteri(s,p,W);
+    if(AN) gl.samplerParameterf(s,AN.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(aniso,gl.getParameter(AN.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    return s;
+  }
+  function blankTex(){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([128,128,128,255])); return t; }
+  function texFrom(source){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source); gl.generateMipmap(gl.TEXTURE_2D); return t; }
+  function tex(im,prep){ const o={t:blankTex(),ready:false}; whenLoaded(im,()=>{ o.t=texFrom(prep?prep(im):im); o.ready=true; }); return o; }
+  // build a cubemap from a horizontal-cross image: every texel of every GL face looks up the net with faceOf()
+  function cubeFromCross(im,size=512){
+    const o={t:gl.createTexture(),ready:false};
+    whenLoaded(im,()=>{
+      const W=Math.floor(im.naturalWidth/4), H=Math.floor(im.naturalHeight/3), c=document.createElement("canvas"); c.width=W*4; c.height=H*3;
+      const x=c.getContext("2d"); x.drawImage(im,0,0,W*4,H*3); const src=x.getImageData(0,0,W*4,H*3).data, SW=W*4;
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP,o.t);
+      const dirOf=[(s,t)=>[1,-t,-s],(s,t)=>[-1,-t,s],(s,t)=>[s,1,t],(s,t)=>[s,-1,-t],(s,t)=>[s,-t,1],(s,t)=>[-s,-t,-1]];
+      for(let f=0;f<6;f++){ const out=new Uint8Array(size*size*4);
+        for(let j=0;j<size;j++) for(let i=0;i<size;i++){
+          const sc=2*(i+.5)/size-1, tc=2*(j+.5)/size-1, q=faceOf(dirOf[f](sc,tc));
+          const sx=Math.min(W-1,Math.floor(q.px*W))+q.f.cell[0]*W, sy=Math.min(H-1,Math.floor(q.py*H))+q.f.cell[1]*H, si=(sy*SW+sx)*4, di=(j*size+i)*4;
+          out[di]=src[si]; out[di+1]=src[si+1]; out[di+2]=src[si+2]; out[di+3]=255; }
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+f,0,gl.RGBA,size,size,0,gl.RGBA,gl.UNSIGNED_BYTE,out); }
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP); o.ready=true;
+    });
+    return o;
+  }
+  function bind(unit,target,t,s){ gl.activeTexture(gl.TEXTURE0+unit); gl.bindTexture(target,t); gl.bindSampler(unit,s||null); }
+  function render(target,fn){
+    fitCanvas(target); const w=target.width, h=target.height; if(w<2||h<2) return;
+    if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+    gl.viewport(0,0,w,h); gl.clearColor(.051,.051,.059,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.CULL_FACE);
+    fn(w,h);
+    const x=target.getContext("2d"); x.setTransform(1,0,0,1,0,0); x.drawImage(cv,0,0);
+  }
+  return {gl,AN,program,use,mesh,draw,sampler,tex,texFrom,cubeFromCross,bind,render};
+})();
+
+/* ---------- meshes ---------- */
+const MESH={};
+function quadData(){ return {pos:[-1,1,0, 1,1,0, 1,-1,0, -1,-1,0], uv:[0,0, 1,0, 1,1, 0,1], nrm:[0,0,1,0,0,1,0,0,1,0,0,1], idx:[0,1,2,0,2,3]}; }
+function cubeData(){
+  const pos=[],uv=[],nrm=[],idx=[];
+  for(const f of FACES){ // outward faces; uv top-left = (0,0)
+    const n=f.n, u=f.u, b=pos.length/3;
+    // seen from outside: right = -(inside right)
+    const R=[-f.r[0],-f.r[1],-f.r[2]];
+    [[-1,1],[1,1],[1,-1],[-1,-1]].forEach(([a,c],k)=>{ pos.push(n[0]+R[0]*a+u[0]*c, n[1]+R[1]*a+u[1]*c, n[2]+R[2]*a+u[2]*c); uv.push((a+1)/2,(1-c)/2); nrm.push(...n); });
+    idx.push(b,b+1,b+2,b,b+2,b+3);
+  }
+  return {pos,uv,nrm,idx};
+}
+function sphereData(R=1,la=48,lo=96){
+  const pos=[],uv=[],nrm=[],idx=[];
+  for(let i=0;i<=la;i++){ const th=i/la*Math.PI; for(let j=0;j<=lo;j++){ const ph=j/lo*Math.PI*2; const n=[Math.sin(th)*Math.sin(ph),Math.cos(th),Math.sin(th)*Math.cos(ph)];
+    pos.push(...n.map(v=>v*R)); nrm.push(...n); uv.push(j/lo,i/la); } }
+  for(let i=0;i<la;i++) for(let j=0;j<lo;j++){ const a=i*(lo+1)+j, b=a+lo+1; idx.push(a,b,a+1,a+1,b,b+1); }
+  return {pos,uv,nrm,idx};
+}
+function torusData(R=.85,r=.38,a=96,b=48){
+  const pos=[],uv=[],nrm=[],idx=[];
+  for(let i=0;i<=a;i++){ const u=i/a*Math.PI*2; for(let j=0;j<=b;j++){ const v=j/b*Math.PI*2;
+    const n=[Math.cos(v)*Math.cos(u),Math.sin(v),Math.cos(v)*Math.sin(u)]; pos.push((R+r*Math.cos(v))*Math.cos(u),r*Math.sin(v),(R+r*Math.cos(v))*Math.sin(u)); nrm.push(...n); uv.push(i/a*3,j/b); } }
+  for(let i=0;i<a;i++) for(let j=0;j<b;j++){ const p=i*(b+1)+j, q=p+b+1; idx.push(p,q,p+1,p+1,q,q+1); }
+  return {pos,uv,nrm,idx};
+}
+function edgesData(){ const pos=[],idx=[]; for(let i=0;i<8;i++) pos.push(i&1?1:-1,i&2?1:-1,i&4?1:-1);
+  for(let i=0;i<8;i++) for(const b of [1,2,4]) if(!(i&b)) idx.push(i,i|b); return {pos,idx}; }
+
+/* ---------- shaders (GLSL ES for the browser; the slides show the HLSL you write for SDL3 GPU) ---------- */
+const P={};
+const SRC={
+  texV:`in vec3 aPos; in vec2 aUV; uniform mat4 uMVP; uniform vec2 uTiling, uOffset; out vec2 vUV; out vec2 vRaw;
+    void main(){ vRaw=aUV; vUV=aUV*uTiling+uOffset; gl_Position=uMVP*vec4(aPos,1.); }`,
+  texF:`in vec2 vUV; in vec2 vRaw; uniform sampler2D uTex, uTex2; uniform int uMode, uOutline; uniform float uMix; out vec4 o;
+    void main(){ vec4 a=texture(uTex,vUV), c=a;
+      if(uMode==1) c=a*texture(uTex2,vUV); else if(uMode==2) c=mix(a,texture(uTex2,vUV),uMix); else if(uMode==3) c=min(a+texture(uTex2,vUV)*.6,1.);
+      if(uOutline==1){ vec2 w=fwidth(vUV)*1.6; vec2 e=min(abs(vUV),abs(vUV-1.));
+        bool inX=vUV.x>-w.x&&vUV.x<1.+w.x, inY=vUV.y>-w.y&&vUV.y<1.+w.y;
+        if((e.x<w.x&&inY)||(e.y<w.y&&inX)) c=vec4(1.,.76,.05,1.); }
+      o=vec4(c.rgb,1.); }`,
+  litV:`in vec3 aPos; in vec2 aUV; in vec3 aNrm; uniform mat4 uModel, uVP; uniform vec2 uTiling; out vec3 vW, vN; out vec2 vUV;
+    void main(){ vec4 w=uModel*vec4(aPos,1.); vW=w.xyz; vN=mat3(uModel)*aNrm; vUV=aUV*uTiling; gl_Position=uVP*w; }`,
+  litF:`in vec3 vW, vN; in vec2 vUV; uniform sampler2D uAlb, uSpec, uEmis; uniform int uUseAlb, uSpecMode, uUseEmis;
+    uniform vec3 uLightPos, uLightCol, uCam; uniform float uLightI, uEmisS, uShine, uAmb; out vec4 o;
+    void main(){ vec3 N=normalize(vN), L=normalize(uLightPos-vW), V=normalize(uCam-vW), H=normalize(L+V);
+      vec3 alb=uUseAlb==1?texture(uAlb,vUV).rgb:vec3(.85);
+      float mask=uSpecMode==2||uSpecMode==3?texture(uSpec,vUV).r:uSpecMode==1?1.:0.;
+      if(uSpecMode==3){ o=vec4(vec3(mask),1.); return; }
+      vec3 lc=uLightCol*uLightI;
+      vec3 col=alb*uAmb*uLightI+lc*max(dot(N,L),0.)*alb+lc*pow(max(dot(N,H),0.),uShine)*mask;
+      if(uUseEmis==1) col+=texture(uEmis,vUV).rgb*uEmisS;
+      o=vec4(col,1.); }`,
+  skyV:`in vec3 aPos; uniform mat4 uVP; out vec3 vDir; void main(){ vDir=aPos; gl_Position=uVP*vec4(aPos,1.); }`,
+  skyF:`in vec3 vDir; uniform samplerCube uCube; out vec4 o; void main(){ o=vec4(texture(uCube,vDir).rgb,1.); }`,
+  envV:`in vec3 aPos; in vec3 aNrm; uniform mat4 uModel, uVP; out vec3 vW, vN; void main(){ vec4 w=uModel*vec4(aPos,1.); vW=w.xyz; vN=mat3(uModel)*aNrm; gl_Position=uVP*w; }`,
+  envF:`in vec3 vW, vN; uniform samplerCube uCube; uniform vec3 uCam; uniform int uMode; uniform float uIOR; out vec4 o;
+    void main(){ vec3 N=normalize(vN), I=normalize(vW-uCam); vec3 d=reflect(I,N);
+      if(uMode==1){ vec3 t=refract(I,N,1./uIOR); if(dot(t,t)>0.) d=t; }
+      vec3 c=texture(uCube,d).rgb; if(uMode==1) c*=vec3(.92,.97,1.); o=vec4(c,1.); }`,
+  flatV:`in vec3 aPos; uniform mat4 uMVP; void main(){ gl_Position=uMVP*vec4(aPos,1.); }`,
+  flatF:`uniform vec4 uColor; out vec4 o; void main(){ o=uColor; }`
+};
+const TX={}, SM={};
+if(GL){
+  try{
+    P.tex=GL.program(SRC.texV,SRC.texF); P.lit=GL.program(SRC.litV,SRC.litF); P.sky=GL.program(SRC.skyV,SRC.skyF);
+    P.env=GL.program(SRC.envV,SRC.envF); P.flat=GL.program(SRC.flatV,SRC.flatF);
+    MESH.quad=GL.mesh(quadData()); MESH.cube=GL.mesh(cubeData()); MESH.sphere=GL.mesh(sphereData()); MESH.torus=GL.mesh(torusData());
+    MESH.edges=GL.mesh(edgesData(),GL.gl.LINES);
+    MESH.floor=GL.mesh({pos:[-60,0,-200, 60,0,-200, 60,0,4, -60,0,4],uv:[0,0,1,0,1,1,0,1],nrm:[0,1,0,0,1,0,0,1,0,0,1,0],idx:[0,1,2,0,2,3]});
+    TX.bricks=GL.tex(IM.bricks); TX.grass=GL.tex(IM.grass); TX.scifi=GL.tex(IM.scifi); TX.scifiE=GL.tex(IM.scifiE);
+    TX.kitten=GL.tex(IM.kitten,im=>{ const c=document.createElement("canvas"); c.width=292; c.height=218; c.getContext("2d").drawImage(im,14,12,292,218,0,0,292,218); return c; });
+    // specular map made from the brick photo: red bricks shiny, grey mortar dull
+    TX.spec=GL.tex(IM.bricks,im=>{ const c=document.createElement("canvas"); c.width=c.height=512; const x=c.getContext("2d"); x.drawImage(im,0,0,512,512);
+      const d=x.getImageData(0,0,512,512), p=d.data; for(let i=0;i<p.length;i+=4){ const red=p[i]-(p[i+1]+p[i+2])/2, v=clamp((red-18)/40,0,1)*clamp(.35+p[i]/255,0,1)*255; p[i]=p[i+1]=p[i+2]=v; }
+      x.putImageData(d,0,0); return c; });
+    TX.sky=GL.cubeFromCross(IM.sky,512);
+    SM.mip=GL.sampler({min:"mip"}); SM.mipA=GL.sampler({min:"mip",aniso:16}); SM.lin=GL.sampler({min:"linear"}); SM.linA=GL.sampler({min:"linear",aniso:16});
+    SM.r=GL.sampler({wrap:"repeat"}); SM.m=GL.sampler({wrap:"mirror"}); SM.c=GL.sampler({wrap:"clamp"});
+    // mip levels tinted so you can see which level the GPU picks
+    TX.levels={t:null,ready:false};
+    whenLoaded(IM.bricks,()=>{ const gl=GL.gl, t=gl.createTexture(), cols=["#ff5a4e","#ff8a1f","#ffc20e","#5fd68a","#6ab8ff","#b18cff"]; gl.bindTexture(gl.TEXTURE_2D,t);
+      for(let L=0,s=512;s>=1;L++,s>>=1){ const c=document.createElement("canvas"); c.width=c.height=s; const x=c.getContext("2d"); x.drawImage(IM.bricks,0,0,s,s); x.globalAlpha=.6; x.fillStyle=cols[L%6]; x.fillRect(0,0,s,s);
+        gl.texImage2D(gl.TEXTURE_2D,L,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c); }
+      TX.levels.t=t; TX.levels.ready=true; });
+  }catch(e){ console.error(e); }
+}
+function noGL(cv,msg="This demo needs WebGL2."){ const x=ctxOf(cv); x.fillStyle="#0d0d0f"; x.fillRect(0,0,cv.offsetWidth,cv.offsetHeight); label(x,msg,cv.offsetWidth/2,cv.offsetHeight/2,MUTE,18,"center"); }
+// drag to orbit: returns state {yaw,pitch} updated by pointer drags on el
+function orbit(el,st,{minP=-1.2,maxP=1.2,k=.008}={}){
+  let last=null;
+  el.addEventListener("pointerdown",e=>{ last=[e.clientX,e.clientY]; el.setPointerCapture(e.pointerId); });
+  el.addEventListener("pointermove",e=>{ if(!last) return; st.yaw+=(e.clientX-last[0])*k; st.pitch=clamp(st.pitch+(e.clientY-last[1])*k,minP,maxP); last=[e.clientX,e.clientY]; st.moved=true; });
+  el.addEventListener("pointerup",()=>last=null); el.addEventListener("pointercancel",()=>last=null);
+  return st;
+}
+
+/* ---------- title + recap: a textured floor scrolling toward you ---------- */
+function floorBg(id,col){
+  const cv=$(id); let t0=0;
+  return {
+    enter(){ t0=performance.now(); },
+    tick(dt,now){
+      const x=ctxOf(cv), W=1600, H=900, hz=430, t=(now-t0)/1000; x.fillStyle="#121214"; x.fillRect(0,0,W,H);
+      const f=520, camH=1.6, sc=(t*.9)%2;
+      for(let j=40;j>=0;j--){ const z0=j-sc+.6, z1=z0+1; if(z0<.4) continue;
+        for(let i=-16;i<16;i++){ if((i+j)&1) continue;
+          const p=[[i,z0],[i+1,z0],[i+1,z1],[i,z1]].map(([X,Z])=>[W/2+X/Z*f,hz+camH/Z*f]);
+          const a=Math.max(0,.28-z0*.007); x.fillStyle=`rgba(${col},${a})`; x.beginPath(); p.forEach(([px,py],k)=>k?x.lineTo(px,py):x.moveTo(px,py)); x.closePath(); x.fill(); } }
+      const g=x.createLinearGradient(0,hz-10,0,hz+120); g.addColorStop(0,"rgba(18,18,20,1)"); g.addColorStop(1,"rgba(18,18,20,0)"); x.fillStyle=g; x.fillRect(0,hz-10,W,130);
+    }
+  };
+}
+A.title=floorBg("tiBg","255,194,14"); A.recap=floorBg("rcBg","106,184,255");
+$("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buffer","copy pass","texture types","texture formats","sampler","nearest / linear","anisotropic","mipmaps","address mode","tiling & offset","sampler slots","albedo map","specular map","emissive map","cubemap","skybox","environment mapping","reflect()","refract()","index of refraction"]
+  .map(t=>`<span class="tag t-y">${t}</span>`).join("");
+
+/* ---------- UV coordinates: drag the UVs, watch the triangle ---------- */
+(() => {
+  const tc=$("uvTex"), oc=$("uvOut"), COL=[RED,GREEN,BLUE];
+  const PRE={full:[[.5,0],[0,1],[1,1]],half:[[.5,.25],[.3,.7],[.7,.7]],flip:[[.5,1],[0,0],[1,0]]};
+  let P=PRE.full.map(p=>[...p]), drag=-1;
+  const setPre=tabs($("uvPre"),k=>{ P=PRE[k].map(p=>[...p]); });
+  const geo=()=>{ const w=tc.offsetWidth, h=tc.offsetHeight, s=Math.min(w-70,h-130); return {s,ox:(w-s)/2+10,oy:58}; };
+  tc.addEventListener("pointerdown",e=>{ const [mx,my]=localXY(e,tc), g=geo(); let best=30; drag=-1;
+    P.forEach((p,i)=>{ const d=Math.hypot(g.ox+p[0]*g.s-mx,g.oy+p[1]*g.s-my); if(d<best){ best=d; drag=i; } });
+    if(drag>=0){ tc.setPointerCapture(e.pointerId); setPre(null); } });
+  tc.addEventListener("pointermove",e=>{ if(drag<0) return; const [mx,my]=localXY(e,tc), g=geo(); P[drag]=[clamp((mx-g.ox)/g.s,0,1),clamp((my-g.oy)/g.s,0,1)]; });
+  tc.addEventListener("pointerup",()=>drag=-1);
+  A.uv={
+    enter(){ P=PRE.full.map(p=>[...p]); setPre("full"); },
+    tick(){
+      const im=IM.stones; if(!im.complete) return;
+      // texture space
+      let x=ctxOf(tc), g=geo(); x.clearRect(0,0,tc.offsetWidth,tc.offsetHeight);
+      x.drawImage(im,g.ox,g.oy,g.s,g.s); x.fillStyle="rgba(13,13,15,.35)"; x.fillRect(g.ox,g.oy,g.s,g.s);
+      x.strokeStyle="rgba(243,241,234,.18)"; x.lineWidth=1; for(let k=1;k<4;k++){ x.beginPath(); x.moveTo(g.ox+k*g.s/4,g.oy); x.lineTo(g.ox+k*g.s/4,g.oy+g.s); x.moveTo(g.ox,g.oy+k*g.s/4); x.lineTo(g.ox+g.s,g.oy+k*g.s/4); x.stroke(); }
+      x.strokeStyle=LINE; x.strokeRect(g.ox,g.oy,g.s,g.s);
+      label(x,"(0,0)",g.ox-10,g.oy+4,Y,13,"right"); label(x,"u →",g.ox+g.s*.8,g.oy-10,MUTE,14,"center"); label(x,"1",g.ox+g.s,g.oy-10,MUTE,14,"center");
+      x.save(); x.translate(g.ox-14,g.oy+g.s/2); x.rotate(-Math.PI/2); label(x,"← v",0,0,MUTE,14,"center"); x.restore(); label(x,"1",g.ox-18,g.oy+g.s+4,MUTE,14,"center");
+      x.strokeStyle=Y; x.lineWidth=2.5; x.beginPath(); P.forEach((p,i)=>{ const X=g.ox+p[0]*g.s, Yy=g.oy+p[1]*g.s; i?x.lineTo(X,Yy):x.moveTo(X,Yy); }); x.closePath(); x.stroke();
+      P.forEach((p,i)=>{ const X=g.ox+p[0]*g.s, Yy=g.oy+p[1]*g.s; dot(x,X,Yy,10,COL[i],"#0d0d0f"); });
+      P.forEach((p,i)=>label(x,`${"ABC"[i]} (${fmt(p[0])}, ${fmt(p[1])})`,g.ox+i*g.s/3,g.oy+g.s+34,COL[i],14));
+      // screen space: the same image drawn through the triangle with an affine map
+      x=ctxOf(oc); const w=oc.offsetWidth, h=oc.offsetHeight; x.clearRect(0,0,w,h);
+      const D=[[w/2,90],[40,h-110],[w-40,h-110]], S=P.map(p=>[p[0]*im.naturalWidth,p[1]*im.naturalHeight]);
+      const det=(S[1][0]-S[0][0])*(S[2][1]-S[0][1])-(S[2][0]-S[0][0])*(S[1][1]-S[0][1]);
+      x.save(); x.beginPath(); D.forEach((d,i)=>i?x.lineTo(d[0],d[1]):x.moveTo(d[0],d[1])); x.closePath(); x.clip();
+      if(Math.abs(det)>1){
+        // solve [a c e; b d f] mapping S -> D
+        const [s0,s1,s2]=S, [d0,d1,d2]=D, ux=s1[0]-s0[0], uy=s1[1]-s0[1], vx=s2[0]-s0[0], vy=s2[1]-s0[1];
+        const a=((d1[0]-d0[0])*vy-(d2[0]-d0[0])*uy)/det, c=((d2[0]-d0[0])*ux-(d1[0]-d0[0])*vx)/det;
+        const b=((d1[1]-d0[1])*vy-(d2[1]-d0[1])*uy)/det, d=((d2[1]-d0[1])*ux-(d1[1]-d0[1])*vx)/det;
+        const e=d0[0]-a*s0[0]-c*s0[1], f=d0[1]-b*s0[0]-d*s0[1], k=oc._k||1;
+        x.setTransform(a*k,b*k,c*k,d*k,e*k,f*k); x.drawImage(im,0,0);
+      } else { x.fillStyle="#222"; x.fillRect(0,0,w,h); }
+      x.restore();
+      x=ctxOf(oc); x.strokeStyle=LINE; x.lineWidth=2; x.beginPath(); D.forEach((d,i)=>i?x.lineTo(d[0],d[1]):x.moveTo(d[0],d[1])); x.closePath(); x.stroke();
+      D.forEach((d,i)=>{ dot(x,d[0],d[1],10,COL[i],"#0d0d0f"); label(x,"ABC"[i],d[0]+(i===1?-4:i===2?4:18),d[1]+(i?32:6),COL[i],16,i===1?"left":i===2?"right":"left"); });
+      label(x,"GPU interpolates UVs across the triangle",w/2,h-40,MUTE,14,"center");
+    }
+  };
+})();
+
+/* ---------- create texture: step through the code ---------- */
+(() => {
+  const pre=$("crCode"), lis=[...$("crSteps").children], key=$("crKey"), R=[[[1,2]],[[4,6]],[[8,16]],[[18,19]]]; let k=0;
+  function show(){ hlLines(pre,k<4?R[k]:[]); lis.forEach((l,i)=>{ l.classList.toggle("on",i===k||k===4); l.classList.toggle("done",i<k); }); key.classList.toggle("on",k===4); }
+  A.create={ enter(d){ k=d<0?4:0; show(); }, step(){ if(k>=4) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
+})();
+
+/* ---------- upload: follow the pixels ---------- */
+(() => {
+  const pre=$("upCode"), nodes=[...$("upPipe").children], tip=$("upTip");
+  const S=[
+    {r:[[2,2],[9,9]],t:"The pixels start in an <b>SDL_Surface</b> in normal RAM. The GPU can’t read them there. <code>size</code> = width × height × 4 bytes."},
+    {r:[[1,10]],t:"Make a <b>transfer buffer</b> (staging memory), <b>map</b> it to get a CPU pointer, <b>memcpy</b> the pixels in, then <b>unmap</b>."},
+    {r:[[12,20]],t:"Record a <b>copy pass</b> in a command buffer. <code>SDL_UploadToGPUTexture</code> copies the transfer buffer into the texture when the GPU runs it."},
+    {r:[[22,23]],t:"The texture now holds the image. <b>Release</b> the transfer buffer and the surface. Keep the texture until shutdown, then <code>SDL_ReleaseGPUTexture</code>."}
+  ]; let k=0;
+  function show(){ hlLines(pre,S[k].r); tip.innerHTML=S[k].t; nodes.forEach((n,i)=>{ n.classList.toggle("on",i===k); n.classList.toggle("done",i<k); }); }
+  A.upload={ enter(d){ k=d<0?3:0; show(); }, step(){ if(k>=3) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
+})();
+
+/* ---------- texture types ---------- */
+(() => {
+  const T=[
+    {k:"SDL_GPU_TEXTURETYPE_2D",n:"2D",d:"Width × height. Almost every texture: albedo, normal, UI, render targets.",
+     tip:"<b>2D</b>: the everyday texture. <code>layer_count_or_depth = 1</code>. Sampled in HLSL as <code>Texture2D</code> with a <b>float2</b> UV.",
+     svg:'<rect x="70" y="20" width="80" height="80" fill="#6ab8ff" opacity=".25" stroke="#6ab8ff" stroke-width="2"/><path d="M70 60h80M110 20v80" stroke="#6ab8ff" opacity=".6"/>'},
+    {k:"SDL_GPU_TEXTURETYPE_2D_ARRAY",n:"2D_ARRAY",d:"A stack of same-size 2D images in one texture.",
+     tip:"<b>2D array</b>: <code>layer_count_or_depth</code> = number of layers. Pick the layer in the shader: <code>Texture2DArray</code> with <b>float3(u, v, layer)</b>. Great for terrain layers or sprite frames.",
+     svg:'<rect x="90" y="14" width="70" height="70" fill="#5fd68a" opacity=".15" stroke="#5fd68a"/><rect x="78" y="26" width="70" height="70" fill="#5fd68a" opacity=".2" stroke="#5fd68a"/><rect x="66" y="38" width="70" height="70" fill="#5fd68a" opacity=".3" stroke="#5fd68a" stroke-width="2"/>'},
+    {k:"SDL_GPU_TEXTURETYPE_3D",n:"3D",d:"Width × height × depth. A volume of texels.",
+     tip:"<b>3D</b>: <code>layer_count_or_depth</code> = depth. Sampled with <b>float3(u, v, w)</b> and filtered between slices. Used for fog, smoke, color-grading lookup tables.",
+     svg:'<path d="M70 44l40-20 40 20v48l-40 20-40-20z" fill="#b18cff" opacity=".2" stroke="#b18cff" stroke-width="2"/><path d="M70 44l40 20 40-20M110 64v48" stroke="#b18cff" fill="none" stroke-width="2"/><path d="M70 60l40 20 40-20M70 76l40 20 40-20" stroke="#b18cff" opacity=".45" fill="none"/>'},
+    {k:"SDL_GPU_TEXTURETYPE_CUBE",n:"CUBE",d:"Six square faces of a cube. Read with a direction.",
+     tip:"<b>Cube</b>: <code>layer_count_or_depth = 6</code>, square faces. HLSL <code>TextureCube</code>, sampled with a <b>float3 direction</b>. Skyboxes and reflections (later in this deck).",
+     svg:'<g fill="#ffc20e" fill-opacity=".25" stroke="#ffc20e" stroke-width="2"><rect x="88" y="12" width="32" height="32"/><rect x="56" y="44" width="32" height="32"/><rect x="88" y="44" width="32" height="32"/><rect x="120" y="44" width="32" height="32"/><rect x="152" y="44" width="32" height="32"/><rect x="88" y="76" width="32" height="32"/></g>'},
+    {k:"SDL_GPU_TEXTURETYPE_CUBE_ARRAY",n:"CUBE_ARRAY",d:"Several cubemaps in one texture.",
+     tip:"<b>Cube array</b>: <code>layer_count_or_depth</code> = 6 × number of cubes. Used for many reflection probes or point-light shadows. Check support with <code>SDL_GPUTextureSupportsFormat</code>.",
+     svg:'<g fill="#ff8a1f" fill-opacity=".15" stroke="#ff8a1f"><rect x="100" y="8" width="24" height="24"/><rect x="76" y="32" width="24" height="24"/><rect x="100" y="32" width="24" height="24"/><rect x="124" y="32" width="24" height="24"/><rect x="148" y="32" width="24" height="24"/><rect x="100" y="56" width="24" height="24"/></g><g fill="#ff8a1f" fill-opacity=".3" stroke="#ff8a1f" stroke-width="2"><rect x="76" y="38" width="24" height="24"/><rect x="52" y="62" width="24" height="24"/><rect x="76" y="62" width="24" height="24"/><rect x="100" y="62" width="24" height="24"/><rect x="124" y="62" width="24" height="24"/><rect x="76" y="86" width="24" height="24"/></g>'}
+  ];
+  const box=$("tyCards"), tip=$("tyTip"), idle='<span class="k">hover a type</span>Every texture is created with one of these in <code>info.type</code>.';
+  box.innerHTML=T.map((t,i)=>`<div class="card hcard" data-i="${i}"><svg viewBox="0 0 220 120">${t.svg}</svg><span class="nm">${t.n}</span><p>${t.d}</p></div>`).join("");
+  const cards=[...box.children];
+  cards.forEach((c,i)=>{ c.addEventListener("mouseenter",()=>{ cards.forEach(o=>o.classList.toggle("on",o===c)); tip.innerHTML=`<span class="k">${T[i].k}</span>${T[i].tip}`; }); });
+  A.types={ enter(){ cards.forEach(o=>o.classList.remove("on")); tip.innerHTML=idle; } };
+})();
+
+/* ---------- texture formats + memory calculator ---------- */
+(() => {
+  const F=[
+    ["R8G8B8A8_UNORM",4,"color textures (what we load)"],
+    ["R8G8B8A8_UNORM_SRGB",4,"color textures, gamma-correct"],
+    ["B8G8R8A8_UNORM",4,"common swapchain format"],
+    ["R8_UNORM",1,"one channel: masks, specular"],
+    ["R16G16B16A16_FLOAT",8,"HDR color, bright lights"],
+    ["D32_FLOAT",4,"depth buffer"],
+    ["D24_UNORM_S8_UINT",4,"depth + stencil (check support)"],
+    ["BC7_RGBA_UNORM",1,"compressed color, 4:1"],
+    ["BC1_RGBA_UNORM",.5,"compressed, 8:1, no smooth alpha"]
+  ];
+  const tb=$("fmTable"), calc=$("fmCalc"); let sel=0, size=1024;
+  tb.innerHTML="<tr><th>SDL_GPU_TEXTUREFORMAT_…</th><th class='r'>bytes / texel</th><th>used for</th></tr>"+F.map((f,i)=>`<tr class="pick" data-i="${i}"><td>${f[0]}</td><td class="r">${f[1]}</td><td><span class="sub">${f[2]}</span></td></tr>`).join("");
+  const rows=[...tb.querySelectorAll("tr.pick")];
+  rows.forEach(r=>r.onclick=()=>{ sel=+r.dataset.i; upd(); });
+  const mb=b=>b>=1048576?fmt(b/1048576,1)+" MB":fmt(b/1024,1)+" KB";
+  function upd(){ rows.forEach((r,i)=>r.classList.toggle("on",i===sel)); const f=F[sel], b=size*size*f[1];
+    calc.innerHTML=`<span class="k">${f[0]}</span>${size} × ${size} × ${f[1]} bytes = <b>${mb(b)}</b><br>with mipmaps (× 4/3) = <b>${mb(b*4/3)}</b><br><span class="muted">as a cubemap (× 6) = ${mb(b*6*4/3)}</span>`; }
+  const sz=slider("fmSize",v=>(1<<v)+"²",v=>{ size=1<<v; upd(); });
+  A.formats={ enter(){ sel=0; sz.set(10); } };
+})();
+
+/* ---------- hover tips on shader / sampler code ---------- */
+codeTips($("hsCode"),$("hsTip"),[
+  [1,1,"<span class='k'>t0 · space2</span>The texture in <b>slot 0</b>. In SDL3 GPU, fragment-shader textures live in <b>space2</b>. On the C++ side, set <code>num_samplers = 1</code> when you create the shader."],
+  [2,2,"<span class='k'>s0 · space2</span>The <b>sampler</b> for slot 0. <code>t0</code> and <code>s0</code> are bound together as one pair by <code>SDL_BindGPUFragmentSamplers</code>."],
+  [4,7,"<span class='k'>input</span>The UV the vertex shader wrote out, <b>interpolated</b> across the triangle. The semantic (<code>TEXCOORD0</code>) must match the vertex shader’s output."],
+  [9,9,"<span class='k'>SV_Target0</span>The return value is written to <b>color target 0</b> of the render pass."],
+  [11,11,"<span class='k'>Sample</span><code>Texture.Sample(Sampler, uv)</code> reads the texture at that UV using the sampler’s filter and address mode. It replaces GLSL’s <code>texture(u_texture, uv)</code>."]
+],"<span class='k'>shadercross</span>Write HLSL once; <b>SDL_shadercross</b> compiles it to SPIR-V (Vulkan), DXIL (D3D12) or MSL (Metal) for <code>SDL_CreateGPUShader</code>.");
+codeTips($("saCode"),$("saTip"),[
+  [1,1,"<b>{}</b> zero-initializes. Anything you don’t set is 0 (nearest filtering, repeat addressing)."],
+  [2,3,"<span class='k'>filters</span><b>min</b> = texture shrunk (far away), <b>mag</b> = texture stretched (up close). Next slide."],
+  [4,4,"<span class='k'>mipmap mode</span>Blend between mip levels (<b>LINEAR</b>) or snap to the nearest one (<b>NEAREST</b>). See the mipmaps slide."],
+  [5,7,"<span class='k'>address modes</span>What happens when a UV is outside 0 to 1, per axis. <b>w</b> is for 3D textures and cubemaps."],
+  [8,9,"<span class='k'>anisotropy</span>Extra samples for surfaces seen at steep angles. 16 is the usual max."],
+  [10,10,"<span class='k'>gotcha</span>With zero-init, <code>max_lod</code> is <b>0</b>, which locks sampling to mip level 0. Set it high so mipmaps are used."],
+  [12,12,"Create once at startup, reuse every frame. Release with <code>SDL_ReleaseGPUSampler</code>."]
+],"<span class='k'>SDL_GPUSamplerCreateInfo</span>Hover a line to see what it does.");
+codeTips($("svCode"),$("svTip"),[
+  [1,5,"<span class='k'>b0 · space1</span>Vertex-shader uniforms. Filled each frame with <code>SDL_PushGPUVertexUniformData(cmd, 0, &m, sizeof(m))</code>."],
+  [6,6,"The cube’s corner positions, −1 to 1."],
+  [7,11,"<b>TexCoord</b> goes to the fragment shader; <b>SV_Position</b> is the clip-space position."],
+  [15,15,"A cube vertex’s position <i>is</i> the direction from the center, so it doubles as the <b>cubemap coordinate</b>."],
+  [16,16,"<code>(float3x3)View</code> keeps the <b>rotation</b> and drops the translation (like <code>mat3(view)</code> in GLSL). The sky turns with you but never moves."],
+  [17,17,"Then project it like any other vertex."],
+  [18,18,"<code>.xyww</code> sets z = w, so after the divide depth = <b>1.0</b>, the far plane. With LESS_OR_EQUAL the sky only shows where nothing else was drawn."]
+],"Hover a line of the vertex shader.");
+codeTips($("sfCode"),$("svTip"),[
+  [1,2,"<b>TextureCube</b> in slot 0: the six-layer cube texture and its sampler."],
+  [4,7,"Sample the cubemap with the interpolated <b>direction</b>. It doesn’t need to be normalized."]
+],"Hover a line of the vertex shader.");
+codeTips($("rvCode"),$("rvTip"),[
+  [1,7,"<span class='k'>b0 · space1</span>Model, view and projection matrices, plus the camera position."],
+  [6,6,"<span class='k'>no inverse()</span>GLSL used <code>inverse(view)[3]</code> to find the camera. HLSL has no <code>inverse()</code>, so pass <b>CameraPosition</b> as a uniform."],
+  [10,11,"<span class='k'>TEXCOORD2</span>Attribute <b>location 2</b> is the normal, matching the vertex buffer layout (position 0, UV 1, normal 2)."],
+  [16,16,"Vertex position in <b>world space</b>."],
+  [17,17,"Normal in world space. <code>(float3x3)Model</code> is fine for uniform scale; use the inverse-transpose for non-uniform scale."],
+  [18,18,"The incident vector <b>i</b>: from the camera to this vertex."],
+  [20,20,"<b>reflect</b> bounces i off the normal. The result is the direction to look up in the cubemap. (<code>Output</code> is the same struct as the skybox shader.)"],
+  [21,21,"The normal MVP transform for the position."]
+],"<span class='k'>reflection.vert.hlsl</span>Hover a line. The fragment shader is the same as the skybox’s: sample the cubemap with TexCoord.");
+
+/* ---------- filtering: nearest vs linear, see which texels each pixel reads ---------- */
+(() => {
+  const cv=$("fiCv"), TW=32, TH=24; let T=null, mode="n", zoom=1, grid=false, hover=null, dirty=true, off=null;
+  whenLoaded(IM.kitten,()=>{ const c=document.createElement("canvas"); c.width=TW; c.height=TH; const x=c.getContext("2d"); x.imageSmoothingQuality="high"; x.drawImage(IM.kitten,14,12,292,218,0,0,TW,TH); T=x.getImageData(0,0,TW,TH).data; dirty=true; });
+  const setMode=tabs($("fiMode"),k=>{ mode=k; dirty=true; });
+  const zs=slider("fiZoom",v=>v.toFixed(1)+"×",v=>{ zoom=v; dirty=true; });
+  const setGrid=toggle($("fiGrid"),on=>{ grid=on; });
+  cv.addEventListener("pointermove",e=>{ hover=localXY(e,cv); }); cv.addEventListener("pointerleave",()=>hover=null);
+  const tex=(i,j)=>{ i=clamp(i,0,TW-1); j=clamp(j,0,TH-1); const k=(j*TW+i)*4; return [T[k],T[k+1],T[k+2]]; };
+  function geo(){ const w=cv.offsetWidth, h=cv.offsetHeight, dw=Math.min(w-40,(h-40)*TW/TH), dh=dw*TH/TW; return {w,h,dw,dh,ox:(w-dw)/2,oy:(h-dh)/2}; }
+  const toUV=(g,x,y)=>[.5+((x-g.ox)/g.dw-.5)/zoom,.5+((y-g.oy)/g.dh-.5)/zoom];
+  const toScr=(g,u,v)=>[g.ox+((u-.5)*zoom+.5)*g.dw,g.oy+((v-.5)*zoom+.5)*g.dh];
+  function sample(u,v){
+    if(mode==="n") return {c:tex(Math.floor(u*TW),Math.floor(v*TH)),taps:[[Math.floor(u*TW),Math.floor(v*TH),1]]};
+    const tx=u*TW-.5, ty=v*TH-.5, x0=Math.floor(tx), y0=Math.floor(ty), fx_=tx-x0, fy=ty-y0;
+    const taps=[[x0,y0,(1-fx_)*(1-fy)],[x0+1,y0,fx_*(1-fy)],[x0,y0+1,(1-fx_)*fy],[x0+1,y0+1,fx_*fy]], c=[0,0,0];
+    for(const [i,j,w] of taps){ const t=tex(i,j); c[0]+=t[0]*w; c[1]+=t[1]*w; c[2]+=t[2]*w; } return {c,taps};
+  }
+  function bake(){ const g=geo(), W=Math.round(g.w), H=Math.round(g.h); off=off||document.createElement("canvas"); off.width=W; off.height=H;
+    const x=off.getContext("2d"), id=x.createImageData(W,H), d=id.data;
+    for(let py=0;py<H;py++) for(let px=0;px<W;px++){ const k=(py*W+px)*4; const inside=px>=g.ox&&px<g.ox+g.dw&&py>=g.oy&&py<g.oy+g.dh;
+      if(!inside){ d[k]=13; d[k+1]=13; d[k+2]=15; d[k+3]=255; continue; }
+      const [u,v]=toUV(g,px+.5,py+.5), c=sample(u,v).c; d[k]=c[0]; d[k+1]=c[1]; d[k+2]=c[2]; d[k+3]=255; }
+    x.putImageData(id,0,0); dirty=false; }
+  A.filter={
+    enter(){ setMode("n"); mode="n"; zs.set(1); setGrid(false); grid=false; hover=null; dirty=true; },
+    tick(){
+      if(!T) return; if(dirty) bake();
+      const x=ctxOf(cv), g=geo(); x.imageSmoothingEnabled=false; x.drawImage(off,0,0,g.w,g.h);
+      x.save(); x.beginPath(); x.rect(g.ox,g.oy,g.dw,g.dh); x.clip();
+      if(grid){ x.strokeStyle="rgba(243,241,234,.18)"; x.lineWidth=1; x.beginPath();
+        for(let i=0;i<=TW;i++){ const [sx]=toScr(g,i/TW,0); x.moveTo(sx,g.oy); x.lineTo(sx,g.oy+g.dh); }
+        for(let j=0;j<=TH;j++){ const [,sy]=toScr(g,0,j/TH); x.moveTo(g.ox,sy); x.lineTo(g.ox+g.dw,sy); } x.stroke(); }
+      let html=`<span class="k">${mode==="n"?"nearest":"linear"}</span>hover a pixel`;
+      if(hover&&hover[0]>g.ox&&hover[0]<g.ox+g.dw&&hover[1]>g.oy&&hover[1]<g.oy+g.dh){
+        const [u,v]=toUV(g,hover[0],hover[1]), s=sample(u,v);
+        for(const [i,j,w] of s.taps){ const [a,b]=toScr(g,i/TW,j/TH), [c2,d2]=toScr(g,(i+1)/TW,(j+1)/TH);
+          x.strokeStyle=Y; x.lineWidth=3; x.globalAlpha=.4+w*.6; x.strokeRect(a+1.5,b+1.5,c2-a-3,d2-b-3); x.globalAlpha=1;
+          if(mode==="l"){ const cx=(a+c2)/2, cy=(b+d2)/2; x.fillStyle="rgba(13,13,15,.85)"; x.fillRect(cx-24,cy-11,48,22); label(x,w.toFixed(2),cx,cy+5,Y,13,"center"); } }
+        x.strokeStyle=INK; x.lineWidth=1.5; x.beginPath(); x.moveTo(hover[0]-10,hover[1]); x.lineTo(hover[0]+10,hover[1]); x.moveTo(hover[0],hover[1]-10); x.lineTo(hover[0],hover[1]+10); x.stroke();
+        const col=`rgb(${s.c.map(Math.round).join(",")})`;
+        html=`<span class="k">${mode==="n"?"nearest":"linear"}</span>uv = (<b>${u.toFixed(3)}</b>, <b>${v.toFixed(3)}</b>)<br>texel = (${(u*TW).toFixed(2)}, ${(v*TH).toFixed(2)})<br>${mode==="n"?"reads <b>1</b> texel":"blends <b>4</b> texels by distance"} → <span style="display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-3px;background:${col}"></span>`;
+      }
+      x.restore();
+      if($("fiRead")._h!==html){ $("fiRead").innerHTML=html; $("fiRead")._h=html; }
+    }
+  };
+})();
+
+/* ---------- mipmaps: a floor stretching into the distance ---------- */
+(() => {
+  const cv=$("mpCv"), cap=$("mpCap"); let mode="off", aniso=false, moving=true, off=0;
+  const setMode=tabs($("mpMode"),k=>mode=k);
+  const setA=toggle($("mpAniso"),on=>aniso=on), setM=toggle($("mpMove"),on=>moving=on);
+  if(!GL||!GL.AN) $("mpAniso").disabled=true;
+  A.mip={
+    enter(){ mode="off"; setMode("off"); aniso=false; setA(false); moving=true; setM(true); off=0; },
+    tick(dt){
+      if(!GL||!P.tex) return noGL(cv);
+      if(moving) off+=dt*.0006;
+      const t=mode==="lv"?TX.levels:TX.bricks; if(!t.ready) return;
+      GL.render(cv,(w,h)=>{
+        const VP=M4.mul(M4.persp(.9,w/h,.05,300),M4.lookAt([0,1.1,2],[0,.55,-6],[0,1,0]));
+        const s=mode==="off"?(aniso?SM.linA:SM.lin):(aniso?SM.mipA:SM.mip);
+        GL.bind(0,GL.gl.TEXTURE_2D,t.t,s);
+        GL.use(P.tex,{uMVP:VP,uTiling:[60,100],uOffset:[0,-off],uTex:0,uMode:0,uOutline:0});
+        GL.draw(MESH.floor);
+      });
+      cap.textContent=(mode==="off"?"min_filter LINEAR · no mip levels":"mipmap_mode LINEAR · "+(mode==="lv"?"red = level 0 (full size), then orange, yellow, green, blue…":"all levels"))+(aniso?" · 16× aniso":"");
+    }
+  };
+})();
+
+/* ---------- address modes ---------- */
+(() => {
+  const cv=$("wrCv"), code=$("wrCode"); let mode="r", range=3;
+  const N={r:"REPEAT",m:"MIRRORED_REPEAT",c:"CLAMP_TO_EDGE"};
+  const show=()=>setCode(code,`s.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_${N[mode]};\ns.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_${N[mode]};`);
+  const setMode=tabs($("wrMode"),k=>{ mode=k; show(); });
+  const rs=slider("wrRange",v=>`${fmt(.5-v/2)} … ${fmt(.5+v/2)}`,v=>range=v);
+  A.wrap={
+    enter(){ mode="r"; setMode("r"); show(); rs.set(3); },
+    tick(){
+      if(!GL||!P.tex) return noGL(cv); if(!TX.kitten.ready) return;
+      GL.render(cv,(w,h)=>{ const a=w/h, s=.92;
+        GL.bind(0,GL.gl.TEXTURE_2D,TX.kitten.t,SM[mode]);
+        GL.use(P.tex,{uMVP:M4.S(s*Math.min(1,1/a),s*Math.min(1,a),1),uTiling:[range,range],uOffset:[.5-range/2,.5-range/2],uTex:0,uMode:0,uOutline:1});
+        GL.draw(MESH.quad); });
+    }
+  };
+})();
+
+/* ---------- tiling and offset ---------- */
+(() => {
+  const cv=$("tlCv"), code=$("tlCode"); let scroll=false, t0=0;
+  const S={}; const upd=()=>setCode(code,`float2 uv = input.TexCoord * Tiling + Offset;\n// Tiling = (${fmt(S.tx.get(),1)}, ${fmt(S.ty.get(),1)})   Offset = (${S.ox.get().toFixed(2)}, ${S.oy.get().toFixed(2)})`);
+  S.tx=slider("tlTx",v=>v.toFixed(1),upd); S.ty=slider("tlTy",v=>v.toFixed(1),upd); S.ox=slider("tlOx",v=>v.toFixed(2),upd); S.oy=slider("tlOy",v=>v.toFixed(2),upd);
+  const setS=toggle($("tlScroll"),on=>scroll=on);
+  const reset=()=>{ S.tx.set(1); S.ty.set(1); S.ox.set(0); S.oy.set(0); scroll=false; setS(false); };
+  $("tlReset").onclick=reset;
+  A.tiling={
+    enter(){ reset(); upd(); },
+    tick(dt){
+      if(scroll){ let v=S.ox.get()+dt*.00015; if(v>1) v-=2; S.ox.set(+v.toFixed(3)); }
+      if(!GL||!P.tex) return noGL(cv); if(!TX.bricks.ready) return;
+      GL.render(cv,(w,h)=>{ GL.bind(0,GL.gl.TEXTURE_2D,TX.bricks.t,SM.r);
+        GL.use(P.tex,{uMVP:M4.S(.9*h/w,.9,1),uTiling:[S.tx.get(),S.ty.get()],uOffset:[S.ox.get(),S.oy.get()],uTex:0,uMode:0,uOutline:0}); GL.draw(MESH.quad); });
+    }
+  };
+})();
+
+/* ---------- multi-texture ---------- */
+(() => {
+  const cv=$("muCv"), code=$("muCode"); let mode="mul";
+  const C={mul:["a * b","×"],lerp:["lerp(a, b, Blend)","lerp"],add:["a + b * 0.6","+"]};
+  const show=()=>{ setCode(code,`float4 a = Texture1.Sample(Sampler1, uv);\nfloat4 b = Texture2.Sample(Sampler2, uv);\nreturn ${C[mode][0]};`); $("muOp").textContent=C[mode][1]; $("muMixRow").style.visibility=mode==="lerp"?"visible":"hidden"; };
+  const setMode=tabs($("muMode"),k=>{ mode=k; show(); });
+  const mx=slider("muMix",v=>v.toFixed(2));
+  A.multi={
+    enter(){ mode="mul"; setMode("mul"); mx.set(.5); show(); },
+    tick(){
+      if(!GL||!P.tex) return noGL(cv); if(!TX.bricks.ready||!TX.grass.ready) return;
+      GL.render(cv,(w,h)=>{ GL.bind(0,GL.gl.TEXTURE_2D,TX.bricks.t,SM.r); GL.bind(1,GL.gl.TEXTURE_2D,TX.grass.t,SM.r);
+        GL.use(P.tex,{uMVP:M4.S(.92*h/w*1.6,.92,1),uTiling:[1.6,1],uOffset:[0,0],uTex:0,uTex2:1,uMode:{mul:1,lerp:2,add:3}[mode],uMix:mx.get(),uOutline:0}); GL.draw(MESH.quad); });
+    }
+  };
+})();
+
+/* ---------- material maps: one lit-model renderer for albedo, specular and emissive ---------- */
+function litDemo(cv,opt){
+  const st=orbit(cv,{yaw:.6,pitch:-.35});
+  return {
+    reset(){ st.yaw=.6; st.pitch=-.35; },
+    draw(now,u){
+      if(!GL||!P.lit) return noGL(cv);
+      const L=now*.0006;
+      GL.render(cv,(w,h)=>{
+        const eye=[0,0,4.2], VP=M4.mul(M4.persp(.75,w/h,.1,50),M4.lookAt(eye,[0,0,0],[0,1,0]));
+        const model=M4.chain(M4.RX(st.pitch),M4.RY(st.yaw),M4.S(opt.scale||1));
+        const lp=[Math.cos(L)*2.6,1.3,3+Math.sin(L)*.6];
+        GL.bind(0,GL.gl.TEXTURE_2D,u.alb.t,SM.mipA); GL.bind(1,GL.gl.TEXTURE_2D,(u.spec||u.alb).t,SM.mipA); GL.bind(2,GL.gl.TEXTURE_2D,(u.emis||u.alb).t,SM.mipA);
+        GL.use(P.lit,{uModel:model,uVP:VP,uTiling:opt.tiling||[1,1],uAlb:0,uSpec:1,uEmis:2,uUseAlb:u.useAlb??1,uSpecMode:u.specMode??1,uUseEmis:u.emis?1:0,uEmisS:u.emisS??0,
+          uLightPos:lp,uLightCol:u.lightCol||[1,1,1],uLightI:u.lightI??1,uCam:eye,uShine:u.shine||40,uAmb:.16});
+        GL.draw(MESH[opt.mesh]);
+        // the light
+        GL.use(P.flat,{uMVP:M4.chain(VP,M4.T(...lp),M4.S(.08)),uColor:[...(u.lightCol||[1,1,1]).map(c=>c*Math.min(1,(u.lightI??1)+.15)),1]}); GL.draw(MESH.sphere);
+      });
+    }
+  };
+}
+(() => {
+  const D=litDemo($("alCv"),{mesh:"cube",scale:.85}), LC={w:[1,1,1],o:[1,.62,.3],b:[.45,.65,1]}; let lc="w", useAlb=true;
+  const setL=tabs($("alLight"),k=>lc=k), setT=toggle($("alTex"),on=>{ useAlb=on; $("alTex").textContent=on?"albedo map on":"albedo map off"; });
+  A.albedo={ enter(){ lc="w"; setL("w"); useAlb=true; setT(true); $("alTex").textContent="albedo map on"; D.reset(); },
+    tick(dt,now){ if(TX.bricks.ready) D.draw(now,{alb:TX.bricks,useAlb:useAlb?1:0,specMode:0,lightCol:LC[lc]}); } };
+})();
+(() => {
+  const D=litDemo($("spCv"),{mesh:"sphere",scale:1.25,tiling:[3,1.5]}), cap=$("spCap"); let m=2;
+  const CAP=["no specular: looks like dry clay","same shine everywhere: looks like plastic","specular map: bricks shine, mortar stays dull","the specular map itself (white = shiny)"];
+  const setM=tabs($("spMode"),k=>m=+k);
+  A.specular={ enter(){ m=0; setM("0"); D.reset(); },
+    tick(dt,now){ cap.textContent=CAP[m]; if(TX.bricks.ready&&TX.spec.ready) D.draw(now,{alb:TX.bricks,spec:TX.spec,specMode:m,shine:28}); } };
+})();
+(() => {
+  const D=litDemo($("emCv"),{mesh:"cube",scale:.85});
+  const li=slider("emLight",v=>v.toFixed(2)), es=slider("emStr",v=>v.toFixed(2));
+  A.emissive={ enter(){ li.set(1); es.set(1.5); D.reset(); },
+    tick(dt,now){ if(TX.scifi.ready&&TX.scifiE.ready) D.draw(now,{alb:TX.scifi,emis:TX.scifiE,emisS:es.get(),lightI:li.get(),specMode:1,shine:60}); } };
+})();
+
+/* ---------- cube net that folds into a cube (CSS 3D) ---------- */
+(() => {
+  const root=$("cbRoot"), box=$("cbBox"), btn=$("cbFold"), S=150;
+  const mk=(k,parent,left,top,origin)=>{ const f=FACES.find(q=>q.k===k), d=document.createElement("div"); d.className="face";
+    d.style.left=left+"px"; d.style.top=top+"px"; d.style.transformOrigin=origin; d.style.backgroundPosition=`${-f.cell[0]*S}px ${-f.cell[1]*S}px`;
+    d.innerHTML=`<span class="lab">${f.axis} · ${f.layer}</span>`; parent.appendChild(d); return d; };
+  const front=mk("nz",root,0,0,"center"), left=mk("nx",front,-S,0,"right center"), right=mk("px",front,S,0,"left center"),
+        top=mk("py",front,0,-S,"center bottom"), bottom=mk("ny",front,0,S,"center top"), back=mk("pz",right,S,0,"left center");
+  let t=0, target=0, st={yaw:0,pitch:0};
+  orbit(box,st,{k:.5,minP:-80,maxP:80});
+  btn.onclick=()=>{ target=target?0:1; btn.textContent=target?"unfold":"fold into a cube"; btn.classList.toggle("on",!!target); if(target){ st.yaw=-35; st.pitch=20; } else { st.yaw=0; st.pitch=0; } };
+  function apply(){ const a=90*ease(t);
+    left.style.transform=`rotateY(${-a}deg)`; right.style.transform=`rotateY(${a}deg)`; back.style.transform=`rotateY(${a}deg)`;
+    top.style.transform=`rotateX(${a}deg)`; bottom.style.transform=`rotateX(${-a}deg)`;
+    const k=ease(t); root.style.transform=`scale(${1.15+.45*k}) translateX(${-75*(1-k)}px) rotateX(${-st.pitch}deg) rotateY(${st.yaw}deg) translateZ(${75*k}px)`; }
+  A.cubemap={ enter(){ t=0; target=0; st.yaw=0; st.pitch=0; btn.textContent="fold into a cube"; btn.classList.remove("on"); apply(); },
+    tick(dt){ t=clamp(t+(target?1:-1)*dt/1100,0,1); apply(); } };
+})();
+
+/* ---------- cube sampling: which face does a direction hit? ---------- */
+(() => {
+  const svg=$("csSvg"), read=$("csRead"), C=140, OX=100, OY=80;
+  svgEl("image",{href:"img/cube-cross.png",x:OX,y:OY,width:C*4,height:C*3,opacity:.9},svg);
+  const outl=FACES.map(f=>svgEl("rect",{x:OX+f.cell[0]*C,y:OY+f.cell[1]*C,width:C,height:C,fill:"none",stroke:"rgba(255,194,14,.25)","stroke-width":2},svg));
+  FACES.forEach(f=>textSvg(svg,`${f.axis} · ${f.layer}`,OX+f.cell[0]*C+8,OY+f.cell[1]*C+C-10,INK,14,"start",600));
+  const hi=svgEl("rect",{width:C,height:C,fill:"rgba(255,194,14,.12)",stroke:Y,"stroke-width":4},svg);
+  const dt_=svgEl("circle",{r:10,fill:Y,stroke:"#0d0d0f","stroke-width":3},svg);
+  const ring=svgEl("circle",{r:20,fill:"none",stroke:Y,"stroke-width":2,opacity:.6},svg);
+  textSvg(svg,"camera looks down −Z (glm’s default), so front = −Z",380,OY+C*3+50,MUTE,15,"middle");
+  let d=[.3,.2,-1];
+  const S=["X","Y","Z"].map((a,i)=>slider("cs"+a,v=>fx(v),v=>{ d[i]=v; upd(); }));
+  function upd(){ const q=faceOf(d.every(v=>Math.abs(v)<1e-3)?[0,0,-1]:d), f=q.f, x=OX+(f.cell[0]+q.px)*C, y=OY+(f.cell[1]+q.py)*C;
+    hi.setAttribute("x",OX+f.cell[0]*C); hi.setAttribute("y",OY+f.cell[1]*C);
+    dt_.setAttribute("cx",x); dt_.setAttribute("cy",y); ring.setAttribute("cx",x); ring.setAttribute("cy",y);
+    read.innerHTML=`direction = (${d.map(v=>fx(v)).join(", ")})<br>largest: |${"xyz"[q.major]}| = ${Math.abs(d[q.major]).toFixed(2)} → <b>${f.axis} ${f.name}</b> · layer ${f.layer}<br>spot on that face = (${q.px.toFixed(2)}, ${q.py.toFixed(2)})`; }
+  svg.addEventListener("pointerdown",e=>{ const [mx,my]=svgXY(e,svg), cx=Math.floor((mx-OX)/C), cy=Math.floor((my-OY)/C), f=FACES.find(q=>q.cell[0]===cx&&q.cell[1]===cy); if(!f) return;
+    const px=(mx-OX)/C-cx, py=(my-OY)/C-cy, u=px*2-1, v=1-py*2; const p=[0,1,2].map(i=>f.n[i]+f.r[i]*u+f.u[i]*v); p.forEach((val,i)=>S[i].set(+val.toFixed(2))); });
+  A.cubesample={ enter(){ S[0].set(.3); S[1].set(.2); S[2].set(-1); } };
+})();
+
+/* ---------- skybox demo ---------- */
+(() => {
+  const cv=$("skCv"), cap=$("skCap"); let view="rot", edges=false, depthW=false;
+  const st=orbit(cv,{yaw:0,pitch:0},{k:.006});
+  const setV=tabs($("skView"),k=>view=k);
+  const wk=slider("skWalk",v=>fx(v,2));
+  const setE=toggle($("skEdges"),on=>edges=on), setD=toggle($("skDepth"),on=>{ depthW=on; $("skDepth").textContent=on?"depth write on":"depth write off"; });
+  const crates=[[0,0,-5],[2.6,-.6,-4.2],[-2.8,.3,-4.6],[4.5,0,1],[-4.6,-.4,.5],[1,.2,5]];
+  A.skydemo={
+    enter(){ view="rot"; setV("rot"); wk.set(0); edges=false; setE(false); depthW=false; setD(false); $("skDepth").textContent="depth write off"; st.yaw=0; st.pitch=0; },
+    tick(dt,now){
+      if(!GL||!P.sky) return noGL(cv); if(!TX.sky.ready) return;
+      const gl=GL.gl, walk=wk.get();
+      GL.render(cv,(w,h)=>{
+        const proj=M4.persp(1.1,w/h,.05,100), V=M4.chain(M4.RX(-st.pitch),M4.RY(st.yaw),M4.T(-walk,0,0));
+        const skyVP=M4.mul(proj,view==="rot"?M4.rotOnly(V):V);
+        gl.depthMask(depthW); GL.bind(0,gl.TEXTURE_CUBE_MAP,TX.sky.t,SM.mip); GL.use(P.sky,{uVP:skyVP,uCube:0}); GL.draw(MESH.cube); gl.depthMask(true);
+        if(edges){ GL.use(P.flat,{uMVP:skyVP,uColor:[1,.76,.05,1]}); GL.draw(MESH.edges); }
+        if(TX.bricks.ready){ const VP=M4.mul(proj,V);
+          GL.bind(1,gl.TEXTURE_2D,TX.bricks.t,SM.mipA);
+          crates.forEach((p,i)=>{ GL.use(P.lit,{uModel:M4.chain(M4.T(...p),M4.RY(i*.7+now*.0003),M4.S(.5)),uVP:VP,uTiling:[1,1],uAlb:1,uSpec:1,uEmis:1,uUseAlb:1,uSpecMode:0,uUseEmis:0,
+            uLightPos:[3,6,2],uLightCol:[1,.97,.9],uLightI:1,uCam:[walk,0,0],uShine:20,uAmb:.35}); GL.draw(MESH.cube); }); }
+      });
+      cap.textContent=(view==="rot"?"sky: projection × rotation only":"sky: projection × full view (translation too)")+" · camera x = "+fx(walk);
+    }
+  };
+})();
+
+/* ---------- skybox steps ---------- */
+(() => {
+  const pre=$("ssCode"), lis=[...$("ssSteps").children], R=[[[12,13]],[[15,15]],[[2,5],[8,8]],[[6,7]],[[10,15]],[[17,18]]]; let k=0;
+  function show(){ hlLines(pre,R[k]); lis.forEach((l,i)=>{ l.classList.toggle("on",i===k); l.classList.toggle("done",i<k); }); }
+  A.skysteps={ enter(d){ k=d<0?5:0; show(); }, step(){ if(k>=5) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; } };
+})();
+
+/* ---------- reflect: build r = i − 2n(n·i) ---------- */
+(() => {
+  const svg=$("rfSvg"), lines=[...$("rfLines").children], key=$("rfKey"), Px=380, Py=430, L=210;
+  let k=0, ang=-.75;  // angle of i measured from straight down
+  const g=svgEl("g",{},svg);
+  svg.addEventListener("pointerdown",e=>{ svg.setPointerCapture(e.pointerId); svg._drag=true; move(e); });
+  svg.addEventListener("pointermove",e=>{ if(svg._drag) move(e); });
+  svg.addEventListener("pointerup",()=>svg._drag=false);
+  function move(e){ const [mx,my]=svgXY(e,svg); if(my>Py-20) return; ang=clamp(Math.atan2(Px-mx,Py-my)*-1,-1.35,1.35); draw(); }
+  function draw(){
+    g.innerHTML="";
+    svgEl("rect",{x:0,y:Py,width:760,height:620-Py,fill:"rgba(106,184,255,.06)"},g);
+    svgEl("line",{x1:30,y1:Py,x2:730,y2:Py,stroke:MUTE,"stroke-width":3},g); textSvg(g,"surface",40,Py+30,MUTE,15);
+    const ix=Math.sin(-ang), iy=-Math.cos(ang);       // i in math coords (y up), pointing down into the surface
+    const S=[Px-ix*L,Py+iy*L];                          // tail of i (svg coords: y down → minus)
+    const dn=iy;                                        // dot(n, i) with n = (0, 1)
+    // i
+    arrowSvg(g,S[0],S[1],Px,Py,BLUE,5); textSvg(g,"i",(S[0]+Px)/2-22,(S[1]+Py)/2,BLUE,26,"middle",700);
+    svgEl("circle",{cx:S[0],cy:S[1],r:12,fill:BLUE,opacity:.35,style:"cursor:grab"},g);
+    // n
+    arrowSvg(g,Px,Py,Px,Py-L,GREEN,5); textSvg(g,"n",Px+16,Py-L+10,GREEN,26,"start",700);
+    if(k>=1){ arrowSvg(g,S[0],S[1],S[0],Py,GREEN,3,"8 6"); textSvg(g,`n·dot(n,i) = ${fx(dn)}`,S[0]+(ix>0?-12:12),(S[1]+Py)/2,GREEN,16,ix>0?"end":"start");
+      svgEl("line",{x1:S[0],y1:Py,x2:Px,y2:Py,stroke:BLUE,"stroke-width":2,"stroke-dasharray":"4 6",opacity:.6},g); }
+    if(k>=2){ arrowSvg(g,Px,Py,Px,Py+2*dn*L,AMBER,4); textSvg(g,"−n·dot(n,i)·2",Px+14,Py+2*dn*L+18,AMBER,16); }
+    if(k>=3){ const rx=ix, ry=-iy; arrowSvg(g,Px,Py,Px+rx*L,Py-ry*L,Y,6); textSvg(g,"r",Px+rx*L*.55+(rx>0?18:-18),Py-ry*L*.55,Y,28,"middle",700);
+      svgEl("line",{x1:S[0],y1:S[1],x2:Px+ix*L,y2:S[1],stroke:Y,"stroke-width":1.5,"stroke-dasharray":"3 6",opacity:.5},g);
+      const th=Math.abs(ang), R=70, a1=-Math.PI/2, sgn=ix>0?-1:1;
+      const arc=(a,b,c)=>svgEl("path",{d:`M${Px+R*Math.cos(a)},${Py+R*Math.sin(a)} A${R},${R} 0 0 ${b>a?1:0} ${Px+R*Math.cos(b)},${Py+R*Math.sin(b)}`,fill:"none",stroke:c,"stroke-width":2.5},g);
+      arc(a1,a1+sgn*th,BLUE); arc(a1,a1-sgn*th,Y);
+      textSvg(g,`θ = ${(th*180/Math.PI).toFixed(0)}°`,Px,Py-R-16,INK,17,"middle"); }
+    lines.forEach((l,i)=>{ l.classList.toggle("on",i<k); l.classList.toggle("cur",i===k-1); });
+    key.classList.toggle("on",k>=3);
+  }
+  A.reflect={ enter(d){ k=d<0?3:0; ang=-.75; draw(); }, step(){ if(k>=3) return false; k++; draw(); return true; }, back(){ if(k<=0) return false; k--; draw(); return true; } };
+})();
+
+/* ---------- refraction: Snell's law ---------- */
+(() => {
+  const svg=$("rrSvg"), read=$("rrRead"), Px=380, Py=300, L=260;
+  const M=[["Vacuum",1],["Air",1.000293],["Water ice",1.31],["Water",1.33],["Ethanol",1.361],["Acrylic",1.49],["Window glass",1.52],["Amber",1.55],["Polycarbonate",1.6],["Sapphire",1.77],["Cubic zirconia",2.15],["Diamond",2.417]];
+  const box=$("rrMats"); box.innerHTML=M.map((m,i)=>`<button class="btn sm" data-k="${i}">${m[0]} <span class="mono" style="opacity:.7">${m[1]}</span></button>`).join("");
+  let mat=3, out=false, ang=.7;
+  const setMat=tabs(box,k=>{ mat=+k; draw(); });
+  const setOut=toggle($("rrSwap"),on=>{ out=on; draw(); });
+  const g=svgEl("g",{},svg);
+  svg.addEventListener("pointerdown",e=>{ svg.setPointerCapture(e.pointerId); svg._drag=true; move(e); });
+  svg.addEventListener("pointermove",e=>{ if(svg._drag) move(e); }); svg.addEventListener("pointerup",()=>svg._drag=false);
+  function move(e){ const [mx,my]=svgXY(e,svg); if(my>Py-10) return; ang=clamp(Math.atan2(Px-mx,Py-my),-1.45,1.45); draw(); }
+  function draw(){
+    g.innerHTML=""; const nM=M[mat][1], n1=out?nM:1.000293, n2=out?1.000293:nM;
+    svgEl("rect",{x:0,y:out?0:Py,width:760,height:out?Py:620-Py,fill:"rgba(106,184,255,.13)"},g);
+    svgEl("line",{x1:0,y1:Py,x2:760,y2:Py,stroke:MUTE,"stroke-width":2},g);
+    svgEl("line",{x1:Px,y1:30,x2:Px,y2:590,stroke:MUTE,"stroke-width":1.5,"stroke-dasharray":"6 8"},g);
+    textSvg(g,`n₁ = ${fmt(n1,4)}  ${out?M[mat][0].toLowerCase():"air"}`,24,40,INK,17); textSvg(g,`n₂ = ${fmt(n2,4)}  ${out?"air":M[mat][0].toLowerCase()}`,24,Py+36,INK,17);
+    const th1=Math.abs(ang), sx=ang>=0?-1:1, S=[Px+sx*Math.sin(th1)*L,Py-Math.cos(th1)*L];
+    arrowSvg(g,S[0],S[1],Px,Py,BLUE,5); svgEl("circle",{cx:S[0],cy:S[1],r:12,fill:BLUE,opacity:.35},g);
+    const s2=n1/n2*Math.sin(th1); let html;
+    const arc=(a,b,R,c)=>svgEl("path",{d:`M${Px+R*Math.cos(a)},${Py+R*Math.sin(a)} A${R},${R} 0 0 ${b>a?1:0} ${Px+R*Math.cos(b)},${Py+R*Math.sin(b)}`,fill:"none",stroke:c,"stroke-width":2.5},g);
+    arc(-Math.PI/2,-Math.PI/2+sx*th1,80,BLUE);
+    if(s2<=1){ const th2=Math.asin(s2); arrowSvg(g,Px,Py,Px-sx*Math.sin(th2)*L,Py+Math.cos(th2)*L,Y,6); arc(Math.PI/2,Math.PI/2+sx*th2,80,Y);
+      svgEl("line",{x1:Px,y1:Py,x2:Px-sx*Math.sin(th1)*L,y2:Py+Math.cos(th1)*L,stroke:BLUE,"stroke-width":2,"stroke-dasharray":"4 8",opacity:.45},g);
+      textSvg(g,"no bending",Px-sx*Math.sin(th1)*L*.95,Py+Math.cos(th1)*L*.95+22,BLUE,13,"middle");
+      html=`θ₁ = <b style="color:var(--blue)">${(th1*180/Math.PI).toFixed(1)}°</b> &nbsp; θ₂ = <b>${(th2*180/Math.PI).toFixed(1)}°</b><br>${fmt(n1,3)} × sin θ₁ = ${fmt(n2,3)} × sin θ₂ = ${(n1*Math.sin(th1)).toFixed(3)}`; }
+    else { arrowSvg(g,Px,Py,Px-sx*Math.sin(th1)*L,Py-Math.cos(th1)*L,RED,6);
+      html=`θ₁ = <b style="color:var(--blue)">${(th1*180/Math.PI).toFixed(1)}°</b> is past the critical angle (${(Math.asin(n2/n1)*180/Math.PI).toFixed(1)}°)<br><b style="color:var(--red)">total internal reflection</b>: refract() returns 0`; }
+    read.innerHTML=html;
+  }
+  A.refract={ enter(){ mat=3; setMat("3"); out=false; setOut(false); ang=.7; draw(); } };
+})();
+
+/* ---------- environment mapping demo ---------- */
+(() => {
+  const cv=$("evCv"), cap=$("evCap"); let mode="refl", shape="sphere";
+  const st=orbit(cv,{yaw:0,pitch:-.1},{k:.006});
+  const setM=tabs($("evMode"),k=>{ mode=k; $("evIorRow").style.visibility=k==="refr"?"visible":"hidden"; });
+  const setS=tabs($("evShape"),k=>shape=k);
+  const io=slider("evIor",v=>v.toFixed(2));
+  A.envdemo={
+    enter(){ mode="refl"; setM("refl"); $("evIorRow").style.visibility="hidden"; shape="sphere"; setS("sphere"); io.set(1.33); st.yaw=0; st.pitch=-.1; },
+    tick(dt,now){
+      if(!GL||!P.env) return noGL(cv); if(!TX.sky.ready) return;
+      const gl=GL.gl;
+      GL.render(cv,(w,h)=>{
+        const R=3.4, eye=[Math.sin(st.yaw)*Math.cos(st.pitch)*R,-Math.sin(st.pitch)*R,Math.cos(st.yaw)*Math.cos(st.pitch)*R];
+        const proj=M4.persp(1,w/h,.05,100), V=M4.lookAt(eye,[0,0,0],[0,1,0]);
+        GL.bind(0,gl.TEXTURE_CUBE_MAP,TX.sky.t,SM.mip);
+        gl.depthMask(false); GL.use(P.sky,{uVP:M4.mul(proj,M4.rotOnly(V)),uCube:0}); GL.draw(MESH.cube); gl.depthMask(true);
+        const model=M4.chain(M4.RY(now*.0003),M4.RX(shape==="torus"?.5:0),M4.S(shape==="cube"?.8:1));
+        GL.use(P.env,{uModel:model,uVP:M4.mul(proj,V),uCube:0,uCam:eye,uMode:mode==="refr"?1:0,uIOR:io.get()}); GL.draw(MESH[shape]);
+      });
+      cap.textContent=mode==="refl"?"reflect(viewDir, normal)":`refract(viewDir, normal, 1.0 / ${io.get().toFixed(2)})`;
+    }
+  };
+})();
+
+/* ---------- navigation ---------- */
+const countEl=$("count"), prog=$("progress");
+/* ---------- live class sync: instructor drives, students follow ---------- */
+// a backend "adapter" plugs in here: claude artifacts (below) or firebase (live.js on the web site)
+// adapter = { role:"presenter"|"student", get(), set(state), subscribe(cb) -> unsub, followers?(cb) -> unsub }
+const Live={role:"solo",ad:null,state:null,locked:false,writing:false,want:null,written:null,room:false,followers:0,unsub:[]};
+const liveBar=document.getElementById("livebar"), toastEl=document.getElementById("toast");
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>toastEl.classList.remove("on"),2200); }
+function liveCap(){ return Live.role==="student"&&Live.state&&Live.state.locked ? Live.state.slide : Infinity; }
+function clampSlide(v){ v=Math.floor(+v); return Number.isFinite(v)?Math.max(0,Math.min(slides.length-1,v)):0; }
+function renderLive(){
+  if(Live.role==="presenter"){
+    liveBar.innerHTML=`<button class="lv ${Live.locked?"on":""}" id="lvBtn" title="Lock students to your slide"><span class="dot"></span>${Live.locked?"Class follows you":"Class can roam"}</button>`+(Live.room?`<span class="lvc">${Live.followers} student${Live.followers===1?"":"s"} watching</span>`:"");
+    document.getElementById("lvBtn").onclick=toggleLock;
+  } else if(Live.role==="student"&&Live.state&&Live.state.locked){
+    liveBar.innerHTML=`<span class="lv on"><span class="dot"></span>Following your instructor</span>`;
+  } else liveBar.innerHTML="";
+  document.getElementById("next").disabled = cur>=liveCap();
+}
+async function pushLive(){
+  if(Live.role!=="presenter"||!Live.ad) return;
+  Live.want={slide:cur,locked:Live.locked};
+  if(Live.writing) return; Live.writing=true;
+  try{ while(Live.want && JSON.stringify(Live.want)!==JSON.stringify(Live.written)){ const w=Live.want; await Live.ad.set(w); Live.written=w; } }
+  catch(e){ console.warn("live sync write failed",e); toast("Couldn’t sync the class. Check your connection."); }
+  Live.writing=false;
+}
+function toggleLock(){ Live.locked=!Live.locked; renderLive(); pushLive(); toast(Live.locked?"Students now follow your slides":"Students can move freely"); }
+function onLiveState(d){
+  const prev=Live.state;
+  Live.state=d?{slide:clampSlide(d.slide),locked:d.locked===true}:null;
+  const s=Live.state;
+  if(s&&s.locked&&(!prev||!prev.locked||prev.slide!==s.slide||cur>s.slide)) go(s.slide);
+  renderLive();
+}
+async function attachLive(ad){
+  Live.unsub.forEach(u=>{ try{ u&&u(); }catch(e){} }); Live.unsub=[];
+  Live.ad=ad; Live.role=ad?ad.role:"solo"; Live.state=null; Live.written=null; Live.room=false;
+  if(!ad){ renderLive(); return; }
+  if(ad.role==="presenter"){
+    try{ const d=await ad.get(); if(d){ Live.locked=d.locked===true; Live.written={slide:clampSlide(d.slide),locked:Live.locked}; if(Live.locked) go(clampSlide(d.slide)); } else Live.locked=false; }catch(e){}
+  } else Live.unsub.push(ad.subscribe(onLiveState));
+  if(ad.followers){ try{ Live.unsub.push(ad.followers(n=>{ Live.room=true; Live.followers=n; renderLive(); })); }catch(e){} }
+  renderLive();
+}
+// backend 1: claude artifact capabilities (db + room + user)
+async function claudeAdapter(){
+  const C=window.claude; if(!C||typeof C.use!=="function") return;
+  let user=null, db=null, room=null;
+  try{ [user,db,room]=await Promise.all([C.use("user"),C.use("db"),C.use("room")]); }catch(e){ return; }
+  if(!db) return;
+  let pres=false; try{ pres=!!user&&(!!(await user.isOwner())||!!(await user.canEdit())); }catch(e){}
+  const ref=db.doc("live/state");
+  attachLive({
+    role:pres?"presenter":"student",
+    get:async()=>{ const s=await ref.get(); return s.exists?s.data():null; },
+    set:w=>ref.set(w),
+    subscribe:cb=>ref.onSnapshot(s=>cb(s.exists?s.data():null),e=>console.warn("live sync stopped",e)),
+    followers:room?cb=>{ if(!pres) room.presence({following:true}).catch(()=>{}); return room.onPeers(ch=>cb(ch.peers.filter(p=>!p.isMe&&p.presence&&p.presence.following).length)); }:null,
+  });
+}
+// backend 2 (web site): live.js calls window.Deck.attachLive(...)
+window.Deck={attachLive,toast,current:()=>cur,count:slides.length};
+
+
+function go(i,fromHash){
+  i=Math.max(0,Math.min(slides.length-1,i));
+  const capS=liveCap(); if(i>capS){ if(cur>=capS) toast("Waiting for your instructor…"); i=capS; }
+  if(i===cur) return;
+  const dir=i>cur?1:-1;
+  if(cur>=0) slides[cur].classList.remove("active");
+  cur=i; const s=slides[cur]; s.classList.add("active");
+  s.querySelectorAll("canvas").forEach(fitCanvas);
+  const a=A[s.dataset.id]; if(a&&a.enter) a.enter(dir);
+  countEl.textContent=`${cur+1} / ${slides.length}`; prog.style.width=((cur+1)/slides.length*100)+"%";
+  if(!fromHash){ try{ history.replaceState(null,"","#s"+(cur+1)); }catch(e){} }
+  if(Live.role==="presenter"&&Live.locked) pushLive();
+  if(Live.role!=="solo") renderLive();
+}
+function fromHash(){ const m=/^#s(\d+)$/.exec(location.hash); go(m?+m[1]-1:0,true); }
+addEventListener("hashchange",fromHash);
+function advance(){ const a=A[slides[cur].dataset.id]; if(a&&a.step&&a.step()) return; go(cur+1); }
+function retreat(){ const a=A[slides[cur].dataset.id]; if(a&&a.back&&a.back()) return; go(cur-1); }
+$("prev").onclick=retreat; $("next").onclick=advance;
+function toggleFS(){ try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){} }
+$("fs").onclick=toggleFS;
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;
+  const k=e.key;
+  if(["ArrowRight","PageDown"].includes(k)||(k===" "&&e.target.tagName!=="BUTTON")){ advance(); e.preventDefault(); }
+  else if(["ArrowLeft","PageUp"].includes(k)){ retreat(); e.preventDefault(); }
+  else if(k==="Home") go(0); else if(k==="End") go(slides.length-1);
+  else if(k==="f"||k==="F") toggleFS();
+});
+let sx=null; stage.addEventListener("touchstart",e=>{ if(e.target.closest("input,button,svg,canvas,table,.grabbable,pre")) return; sx=e.touches[0].clientX; },{passive:true});
+stage.addEventListener("touchend",e=>{ if(sx===null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>60) (dx<0?advance:retreat)(); sx=null; });
+addEventListener("resize",fitStage);
+fitStage(); fromHash(); claudeAdapter();
+let last=performance.now();
+function loop(now){ const dt=Math.min(100,now-last); last=now; const s=slides[cur], a=s&&A[s.dataset.id]; if(a&&a.tick){ try{ a.tick(dt,now); }catch(err){ console.error(err); } } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+})();
+
+</script>
+<script type="module" src="../live.js"></script>
+</body>
+</html>
