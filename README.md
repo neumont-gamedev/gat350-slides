@@ -1,6 +1,6 @@
 # GAT350 slides
 
-Interactive web slides for GAT350 (Graphics Programming: SDL3 GPU + HLSL). Students need no account. During class the instructor can lock the
+Interactive web slides for GAT350 (Computer Graphics: SDL3 GPU + HLSL). Students need no account. During class the instructor can lock the
 slides so every student follows along and nobody can skip ahead.
 
 - `index.html`: landing page listing the decks
