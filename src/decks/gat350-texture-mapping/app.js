@@ -322,7 +322,7 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
   const PRE={full:[[.5,0],[0,1],[1,1]],half:[[.5,.25],[.3,.7],[.7,.7]],flip:[[.5,1],[0,0],[1,0]]};
   let P=PRE.full.map(p=>[...p]), drag=-1;
   const setPre=tabs($("uvPre"),k=>{ P=PRE[k].map(p=>[...p]); });
-  const geo=()=>{ const w=tc.offsetWidth, h=tc.offsetHeight, s=Math.min(w-70,h-130); return {s,ox:(w-s)/2+10,oy:58}; };
+  const geo=()=>{ const w=tc.offsetWidth, h=tc.offsetHeight, s=Math.min(w-110,h-130); return {s,ox:(w-s)/2+20,oy:58}; };
   tc.addEventListener("pointerdown",e=>{ const [mx,my]=localXY(e,tc), g=geo(); let best=30; drag=-1;
     P.forEach((p,i)=>{ const d=Math.hypot(g.ox+p[0]*g.s-mx,g.oy+p[1]*g.s-my); if(d<best){ best=d; drag=i; } });
     if(drag>=0){ tc.setPointerCapture(e.pointerId); setPre(null); } });
@@ -341,7 +341,7 @@ $("rcChips").innerHTML=["texel","UV coordinates","SDL_GPUTexture","transfer buff
       x.save(); x.translate(g.ox-14,g.oy+g.s/2); x.rotate(-Math.PI/2); label(x,"← v",0,0,MUTE,14,"center"); x.restore(); label(x,"1",g.ox-18,g.oy+g.s+4,MUTE,14,"center");
       x.strokeStyle=Y; x.lineWidth=2.5; x.beginPath(); P.forEach((p,i)=>{ const X=g.ox+p[0]*g.s, Yy=g.oy+p[1]*g.s; i?x.lineTo(X,Yy):x.moveTo(X,Yy); }); x.closePath(); x.stroke();
       P.forEach((p,i)=>{ const X=g.ox+p[0]*g.s, Yy=g.oy+p[1]*g.s; dot(x,X,Yy,10,COL[i],"#0d0d0f"); });
-      P.forEach((p,i)=>label(x,`${"ABC"[i]} (${fmt(p[0])}, ${fmt(p[1])})`,g.ox+i*g.s/3,g.oy+g.s+34,COL[i],14));
+      P.forEach((p,i)=>label(x,`${"ABC"[i]} (${p[0].toFixed(1)}, ${p[1].toFixed(1)})`,g.ox+i*g.s/3,g.oy+g.s+34,COL[i],13));
       // screen space: the same image drawn through the triangle with an affine map
       x=ctxOf(oc); const w=oc.offsetWidth, h=oc.offsetHeight; x.clearRect(0,0,w,h);
       const D=[[w/2,90],[40,h-110],[w-40,h-110]], S=P.map(p=>[p[0]*im.naturalWidth,p[1]*im.naturalHeight]);
