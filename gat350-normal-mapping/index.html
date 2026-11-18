@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="deck-id" content="gat350-normal-mapping">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAT350 · Normal Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121214; --panel:#1c1c20; --panel2:#24242a; --line:#2e2e35;
+    --ink:#f3f1ea; --mute:#9b988f; --y:#ffc20e; --amber:#ff8a1f; --red:#ff5a4e; --green:#5fd68a; --blue:#6ab8ff; --purple:#b18cff;
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#000;overflow:hidden;color:var(--ink);font-family:var(--sans)}
+  #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;background:var(--bg);overflow:hidden}
+
+  .slide{position:absolute;inset:0;padding:100px 110px 90px;opacity:0;visibility:hidden;transform:scale(1.015);
+    transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s .6s}
+  .slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s}
+  .rise{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .rise{opacity:1;transform:none;transition-delay:calc(var(--i,0) * 110ms + 150ms)}
+
+  .bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(18,18,20,.5) 0%,rgba(18,18,20,.88) 60%,var(--bg) 100%);pointer-events:none}
+  .content{position:relative;z-index:1;height:100%}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+
+  .eyebrow{font-family:var(--mono);font-size:20px;letter-spacing:.18em;text-transform:uppercase;color:var(--y)}
+  h1{font-size:118px;line-height:.98;font-weight:700;letter-spacing:-.03em;margin:22px 0 34px}
+  h1 span,h2 span.y{color:var(--y)}
+  h2{font-size:56px;font-weight:700;letter-spacing:-.02em;line-height:1.06}
+  h2 .n{font-family:var(--mono);font-size:21px;color:var(--y);font-weight:600;display:block;letter-spacing:.12em;margin-bottom:12px}
+  h3{font-size:26px}
+  .lede{font-size:31px;line-height:1.4;color:#d6d3cb;max-width:1100px}
+  p{font-size:25px;line-height:1.45;color:#d6d3cb}
+  b,strong{color:var(--ink)}
+  .y{color:var(--y)} .mono{font-family:var(--mono)} .muted{color:var(--mute)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px}
+  .pad{padding:22px 24px}
+
+  .bul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .bul li{font-size:24px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:26px}
+  .bul li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;background:var(--y);border-radius:3px}
+  .num{list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:14px}
+  .num li{counter-increment:n;font-size:23px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:44px;transition:color .3s,opacity .3s}
+  .num li::before{content:counter(n);position:absolute;left:0;top:.18em;font-family:var(--mono);font-size:16px;line-height:1.4;color:var(--bg);background:var(--y);border-radius:6px;padding:0 9px}
+  .num.steps li{opacity:.35}
+  .num.steps li.on{opacity:1;color:var(--ink)}
+  .num.steps li.done{opacity:.75}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:64px;height:100%;align-items:center}
+  .two.wide-r{grid-template-columns:.85fr 1.15fr}
+  .stack{display:flex;flex-direction:column;gap:26px}
+  .stage-box{position:relative;height:620px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  .stage-box canvas,.stage-box svg{position:absolute;inset:0;width:100%;height:100%}
+  .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:15px;color:var(--mute);background:rgba(13,13,15,.8);padding:6px 10px;border-radius:8px;z-index:2;pointer-events:none}
+  .cap.top{top:14px;bottom:auto}
+  .cap.r{left:auto;right:18px}
+  .callout{border-left:4px solid var(--y);padding:14px 20px;background:rgba(255,194,14,.07);border-radius:0 12px 12px 0;font-size:22px;line-height:1.45;color:#e5e2da}
+  .callout.red{border-color:var(--red);background:rgba(255,90,78,.07)}
+  .keyIdea{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .keyIdea.on{opacity:1;transform:none}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:500 19px var(--sans);padding:10px 20px;border-radius:10px;cursor:pointer}
+  .btn:hover{border-color:var(--y);color:var(--y)}
+  .btn.on{background:var(--y);color:var(--bg);border-color:var(--y)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}
+  .btn.sm{font-size:16px;padding:8px 14px}
+  .btn.mono{font-family:var(--mono);font-size:15px}
+  .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tag{display:inline-block;font-family:var(--mono);font-size:15px;padding:4px 10px;border-radius:6px;font-weight:600;letter-spacing:.04em}
+  .t-red{background:rgba(255,90,78,.15);color:var(--red)} .t-green{background:rgba(95,214,138,.15);color:var(--green)} .t-blue{background:rgba(106,184,255,.15);color:var(--blue)} .t-y{background:rgba(255,194,14,.15);color:var(--y)}
+  .hint{font-family:var(--mono);font-size:15px;color:var(--mute)}
+  .hint::before{content:"› ";color:var(--y)}
+  code,.code{font-family:var(--mono);color:var(--y);font-size:.9em}
+  .k{font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+
+  /* chrome */
+  #chrome{position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:18px;padding:0 32px;z-index:10;font-family:var(--mono);font-size:16px;color:var(--mute);pointer-events:none}
+  #chrome button{pointer-events:auto}
+  #chrome .sp{flex:1}
+  #brand{position:absolute;left:32px;top:28px;z-index:10;font-family:var(--mono);font-size:15px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+  #brand b{color:var(--y);font-weight:600}
+  #logo{position:absolute;right:32px;top:22px;height:44px;z-index:10;pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+  #progress{position:absolute;left:0;bottom:0;height:4px;background:var(--y);transition:width .5s cubic-bezier(.2,.7,.2,1);z-index:11}
+  .nbtn{background:transparent;border:1px solid var(--line);color:var(--ink);font:inherit;width:40px;height:34px;border-radius:8px;cursor:pointer}
+  .nbtn:hover{border-color:var(--y);color:var(--y)}
+
+  /* live class sync */
+  #livewrap{position:absolute;left:32px;bottom:11px;z-index:12;display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:15px}
+  #livebar,#liveauth{display:flex;gap:12px;align-items:center}
+  #liveauth:empty,#livebar:empty{display:none}
+  .lv{display:inline-flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:6px 14px;font:inherit}
+  button.lv{cursor:pointer} button.lv:hover{border-color:var(--y)}
+  .lv.on{border-color:var(--y);color:var(--y)}
+  .lv .dot{width:9px;height:9px;border-radius:50%;background:#55534d}
+  .lv.on .dot{background:var(--red);box-shadow:0 0 0 0 rgba(255,90,78,.6);animation:lvp 1.6s infinite}
+  @keyframes lvp{70%{box-shadow:0 0 0 8px rgba(255,90,78,0)}100%{box-shadow:0 0 0 0 rgba(255,90,78,0)}}
+  .lvc{color:var(--mute)}
+  .nbtn:disabled{opacity:.25;cursor:not-allowed;border-color:var(--line);color:var(--ink)}
+  #toast{position:absolute;left:50%;bottom:76px;z-index:20;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--panel2);border:1px solid var(--y);color:var(--ink);font-size:20px;padding:12px 22px;border-radius:12px;transition:opacity .3s,transform .3s;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  /* ---------- normal mapping deck ---------- */
+  pre.src{font-family:var(--mono);font-size:17px;line-height:1.5;color:#d6d3cb;background:#0d0d0f;border:1px solid var(--line);border-radius:14px;padding:16px 0;white-space:pre;overflow:hidden;position:relative}
+  pre.src .ln{display:block;padding:0 20px;transition:background .25s,opacity .3s;border-left:3px solid transparent}
+  pre.src.dim .ln{opacity:.38}
+  pre.src .ln.hl{background:rgba(255,194,14,.10);border-left-color:var(--y);opacity:1}
+  pre.src .ln.hov{cursor:default}
+  pre.src .ln.hov:hover{background:rgba(255,255,255,.05)}
+  pre.src .kw{color:var(--blue)} pre.src .ty{color:var(--purple)} pre.src .fn{color:var(--green)} pre.src .s{color:var(--amber)} pre.src .c{color:#6f6c66;font-style:italic} pre.src .nu{color:var(--amber)} pre.src .k2{color:var(--y)} pre.src .sem{color:var(--red)}
+  pre.src.sm{font-size:15px} pre.src.xs{font-size:14px;line-height:1.32}
+  .codeHead{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:14px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .codeHead .tag{text-transform:none}
+  .tip{min-height:120px;padding:20px 24px;font-size:21px;line-height:1.45;color:#d6d3cb}
+  .tip b{color:var(--y)}
+  .tip .k{display:block;margin-bottom:6px}
+  figure.fig{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  figure.fig img,figure.fig canvas{display:block;width:100%;height:100%;object-fit:contain}
+  figure.fig figcaption{position:absolute;left:10px;bottom:10px;font-family:var(--mono);font-size:14px;padding:5px 10px;border-radius:8px;background:rgba(13,13,15,.85);color:var(--mute)}
+  .ctl{display:grid;grid-template-columns:110px 1fr 70px;gap:14px;align-items:center;font-family:var(--mono);font-size:17px;color:var(--mute)}
+  .ctl output{color:var(--y);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:4px;background:#2a2a30;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--y);cursor:pointer;box-shadow:0 0 12px rgba(255,194,14,.5)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--y);cursor:pointer}
+  .readout{font-family:var(--mono);font-size:19px;line-height:1.65;color:#d6d3cb;padding:16px 20px}
+  .readout b{color:var(--y);font-weight:600}
+  .readout .k{display:block;margin-bottom:4px}
+  .grabbable{cursor:grab} .grabbable:active{cursor:grabbing}
+  .cR{color:var(--red)} .cG{color:var(--green)} .cB{color:var(--blue)}
+  .swatch{width:100%;height:90px;border-radius:12px;border:1px solid var(--line)}
+  .fxl{font-family:var(--mono);font-size:21px;line-height:1.75;color:#d6d3cb}
+  .fxl div{opacity:.3;transition:opacity .4s,color .4s}
+  .fxl div.on{opacity:1}
+  .fxl div.cur{color:var(--y)}
+  .mat{display:inline-grid;grid-template-columns:repeat(3,64px);gap:4px 6px;font-family:var(--mono);font-size:19px;padding:8px 14px;border-left:3px solid var(--mute);border-right:3px solid var(--mute);border-radius:8px;vertical-align:middle}
+  .mat span{text-align:right;transition:color .3s,opacity .3s}
+  .lay{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .lay figure{height:170px;cursor:pointer;transition:border-color .25s,opacity .25s}
+  .lay figure.off{opacity:.35}
+  .lay figure.on{border-color:var(--y)}
+  .bugTxt{min-height:190px}
+  .chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:1250px}
+  .chips .tag{font-size:20px;padding:8px 16px}
+  .mrow{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:24px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="logo" src="data:image/png;base64,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" alt="Neumont University">
+  <a id="brand" href="../" title="All slide decks" style="text-decoration:none">← <b>GAT350</b> &nbsp;·&nbsp; Normal Mapping</a>
+
+  <!-- 1 title -->
+  <section class="slide" data-id="title">
+    <canvas class="bg" id="tiBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center">
+      <div class="eyebrow rise" style="--i:0">GAT350 · Computer Graphics</div>
+      <h1 class="rise" style="--i:1">Normal <span>Mapping</span></h1>
+      <p class="lede rise" style="--i:2">Lighting bumps and dents that aren’t in the geometry: normal maps, tangent space and the TBN matrix.</p>
+    </div>
+  </section>
+
+  <!-- 2 what -->
+  <section class="slide" data-id="what">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr">
+      <div class="stack">
+        <h2 class="rise" style="--i:0"><span class="n">THE IDEA</span>What is normal mapping?</h2>
+        <p class="rise" style="--i:1">Lighting depends on the surface <b class="y">normal</b>. A normal map gives every pixel its own normal, so flat triangles light up as if they had bumps.</p>
+        <p class="rise" style="--i:2">The geometry doesn’t change. The demo on the right is <b>two triangles</b>.</p>
+        <div class="acts rise" style="--i:3"><button class="btn on" id="whNrm">normal map: on</button><button class="btn" id="whAlb">albedo: on</button></div>
+        <div class="hint rise" style="--i:4">move the mouse over the picture to move the light</div>
+        <div class="callout rise" style="--i:5">Also called <b>Dot3 bump mapping</b>. It is a cheap way to add detail to a low-poly model.</div>
+      </div>
+      <div class="stage-box rise" style="--i:2;height:640px"><canvas id="whCv"></canvas><div class="cap" id="whCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 3 normal map image -->
+  <section class="slide" data-id="map">
+    <h2 class="rise" style="--i:0"><span class="n">NORMAL MAP</span>An image full of directions</h2>
+    <div style="display:grid;grid-template-columns:600px 1fr;gap:40px;margin-top:24px">
+      <div class="stage-box rise" style="--i:1;height:600px"><canvas id="mpCv" style="cursor:crosshair"></canvas><div class="cap">stones · normal map</div></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:23px">Each texel stores a direction instead of a color: <b class="cR">R → x</b>, <b class="cG">G → y</b>, <b class="cB">B → z</b>.</p>
+        <div class="card" style="display:grid;grid-template-columns:1fr 210px;gap:10px;align-items:center">
+          <div class="readout" id="mpRead"></div>
+          <canvas id="mpArrow" style="width:200px;height:200px"></canvas>
+        </div>
+        <div class="swatch" id="mpSw"></div>
+        <div class="hint">hover the normal map</div>
+        <p class="muted" style="font-size:19px">The arrow is the normal seen from above. x points right, y points <b>down the image</b> (the same way +V goes), z points out of the surface.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 decode -->
+  <section class="slide" data-id="decode">
+    <h2 class="rise" style="--i:0"><span class="n">COLOR TO DIRECTION</span>0 … 1 becomes −1 … 1</h2>
+    <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:44px;margin-top:26px">
+      <div class="stack rise" style="--i:1;gap:18px">
+        <div class="ctl"><span class="cR">red</span><input type="range" id="dcR" min="0" max="255" value="128"><output id="dcRO"></output></div>
+        <div class="ctl"><span class="cG">green</span><input type="range" id="dcG" min="0" max="255" value="128"><output id="dcGO"></output></div>
+        <div class="ctl"><span class="cB">blue</span><input type="range" id="dcB" min="0" max="255" value="255"><output id="dcBO"></output></div>
+        <div class="acts" id="dcPre"><button class="btn sm" data-k="flat">flat</button><button class="btn sm" data-k="right">tilt right</button><button class="btn sm" data-k="down">tilt down</button><button class="btn sm" data-k="bad">not unit length</button></div>
+        <div class="stage-box" style="height:300px"><canvas id="dcLine"></canvas></div>
+      </div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <div class="card" style="display:grid;grid-template-columns:1fr 200px;align-items:center"><div class="readout" id="dcRead"></div><canvas id="dcArrow" style="width:190px;height:190px"></canvas></div>
+        <div class="card pad mono" style="font-size:22px;line-height:1.7">normal = color <span class="y">* 2.0 − 1.0</span><br><span class="muted">color&nbsp; = normal * 0.5 + 0.5</span></div>
+        <div class="callout">A flat surface’s normal is <b>(0, 0, 1)</b>. Encoded, that is <b>(0.5, 0.5, 1.0)</b>, a light blue. That is why normal maps look mostly <span class="cB">blue</span>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 per vertex vs per pixel -->
+  <section class="slide" data-id="pernormal">
+    <h2 class="rise" style="--i:0"><span class="n">NORMALS</span>Vertex normals vs. map normals</h2>
+    <div class="stage-box rise" style="--i:1;height:530px;margin-top:22px"><canvas id="pnCv"></canvas></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px" class="rise">
+      <div class="ctl" style="grid-template-columns:150px 1fr 80px"><span>light angle</span><input type="range" id="pnL" min="-75" max="75" value="-40"><output id="pnLO"></output></div>
+      <p style="font-size:21px">A flat triangle has <b>one</b> normal, so its lighting is flat. The map gives <b class="y">every pixel</b> a normal tilted like the real bumpy surface (dashed).</p>
+    </div>
+  </section>
+
+  <!-- 6 layers -->
+  <section class="slide" data-id="layers">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL</span>Albedo + normal map</h2>
+        <div class="lay rise" style="--i:1" id="lyFigs">
+          <figure class="fig on" data-k="alb"><img src="img/stones-albedo.jpg" alt="albedo"><figcaption>albedo</figcaption></figure>
+          <figure class="fig on" data-k="nrm"><canvas id="lyNrm"></canvas><figcaption>normal map</figcaption></figure>
+          <figure class="fig" data-k="show"><canvas id="lyShow"></canvas><figcaption>N as color</figcaption></figure>
+        </div>
+        <div class="hint rise" style="--i:2">click a map to switch it on or off</div>
+        <p class="rise" style="--i:3;font-size:22px">The <b class="y">albedo</b> is the base color of the surface. The <b class="y">normal map</b> holds the normal vectors that lighting uses.</p>
+        <p class="rise muted" style="--i:4;font-size:19px">“N as color” shows the final normals as RGB. That view is a good way to debug.</p>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:660px"><canvas id="lyCv"></canvas><div class="cap" id="lyCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 7 baking -->
+  <section class="slide" data-id="bake">
+    <h2 class="rise" style="--i:0"><span class="n">WHERE THEY COME FROM</span>Baking detail into a map</h2>
+    <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:28px;margin-top:26px;height:430px">
+      <figure class="fig rise" style="--i:1;background:#fff"><img src="img/high-low.png" alt="4M triangle mesh, 500 triangle mesh, 500 triangles with normal map"></figure>
+      <figure class="fig rise" style="--i:2"><img src="img/sculpt-bake.jpg" alt="a sculpted character and its baked normal map"><figcaption>a sculpt and its baked map (left)</figcaption></figure>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px">
+      <p class="rise" style="--i:3;font-size:22px"><b class="y">From a high-poly model:</b> artists sculpt millions of triangles (ZBrush, Blender), then <b>bake</b> the detail into a normal map for a low-poly model with the same UVs.</p>
+      <p class="rise" style="--i:4;font-size:22px"><b class="y">From a height map:</b> a grayscale bump image becomes normals by measuring its slope in x and y. Many tools (Substance, GIMP, Photoshop) can do this.</p>
+    </div>
+  </section>
+
+  <!-- 8 why tangent space -->
+  <section class="slide" data-id="why">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">TANGENT SPACE</span>Map normals are relative</h2>
+        <p class="rise" style="--i:1;font-size:23px">In a normal map, <b class="cB">+z</b> means “straight out of <b>this</b> surface”, not “toward world +Z”. The same map has to work on every face of the model.</p>
+        <div class="acts rise" style="--i:2" id="wyMode"><button class="btn" data-k="raw">use map normal as-is</button><button class="btn" data-k="tbn">rotate it with TBN</button></div>
+        <div class="acts rise" style="--i:2" id="wyMesh"><button class="btn sm" data-k="wall">curved wall</button><button class="btn sm" data-k="sphere">sphere</button><button class="btn sm" id="wyShow">N as color</button></div>
+        <div class="card tip rise" style="--i:3;min-height:150px" id="wyTip"></div>
+        <div class="hint rise" style="--i:4">drag to rotate the model</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:660px"><canvas id="wyCv"></canvas><div class="cap" id="wyCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 9 frame -->
+  <section class="slide" data-id="frame">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">TANGENT SPACE</span>Tangent, bitangent, normal</h2>
+        <p class="rise" style="--i:1;font-size:22px">Every vertex gets its own small set of axes, lined up with the texture:</p>
+        <ul class="bul rise" style="--i:2">
+          <li><b class="cR">T</b>angent points along <b class="cR">+U</b> (red in the texture)</li>
+          <li><b class="cG">B</b>itangent points along <b class="cG">+V</b> (green in the texture)</li>
+          <li><b class="cB">N</b>ormal points out of the surface</li>
+        </ul>
+        <div class="card readout rise" style="--i:3" id="frRead"></div>
+        <p class="rise muted" style="--i:4;font-size:18px">The mesh file gives you N and T. B can be computed: <code>B = cross(N, T) * w</code>.</p>
+        <div class="hint rise" style="--i:4">hover a vertex · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:680px"><canvas id="frCv"></canvas><div class="cap">texture: red = U, green = V</div></div>
+    </div>
+  </section>
+
+  <!-- 10 orthonormal -->
+  <section class="slide" data-id="ortho">
+    <h2 class="rise" style="--i:0"><span class="n">MATH</span>An orthonormal matrix rotates</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:22px">
+      <div class="stage-box rise" style="--i:1;height:600px"><svg id="orSvg" viewBox="0 0 640 600"></svg><div class="cap">2D slice: z = 0</div></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:21px"><b class="y">Orthonormal:</b> the three rows are unit length (length 1) and perpendicular to each other. Each row is one of the object’s local axes.</p>
+        <div class="mrow"><span>v ·</span><div class="mat" id="orMat"></div><span id="orRes" class="y"></span></div>
+        <div class="fxl" id="orSteps">
+          <div>rows = rotated axes <span class="cR">X′</span> <span class="cG">Y′</span> <span class="cB">Z′</span></div>
+          <div>v·M = <span class="cR">x·X′</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <span class="cG">y·Y′</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <span class="cB">z·Z′</span> = v, rotated</div>
+        </div>
+        <div class="ctl" style="grid-template-columns:110px 1fr 70px"><span>rotate</span><input type="range" id="orA" min="-180" max="180" value="50"><output id="orAO"></output></div>
+        <div class="hint">→ steps through the multiply</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 TBN -->
+  <section class="slide" data-id="tbn">
+    <h2 class="rise" style="--i:0"><span class="n">TBN MATRIX</span>Three axes in one 3×3 matrix</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:30px;align-items:center">
+      <div class="stage-box rise" style="--i:1;height:540px"><svg id="tbSvg" viewBox="0 0 640 540"></svg></div>
+      <div class="stack rise" style="--i:2;gap:22px">
+        <div class="mrow"><span>TBN =</span><div class="mat" style="grid-template-columns:repeat(3,70px);font-size:22px">
+          <span class="cR">T.x</span><span class="cR">T.y</span><span class="cR">T.z</span>
+          <span class="cG">B.x</span><span class="cG">B.y</span><span class="cG">B.z</span>
+          <span class="cB">N.x</span><span class="cB">N.y</span><span class="cB">N.z</span></div></div>
+        <ul class="bul">
+          <li>Built from three <b>orthonormal</b> vectors, so it is a pure rotation.</li>
+          <li>Takes a normal from <b class="y">tangent space</b> (the map) to <b class="y">world space</b>.</li>
+          <li>Its inverse is its <b class="y">transpose</b>, which is cheap.</li>
+        </ul>
+        <div class="card pad mono" style="font-size:21px;line-height:1.7">mul(n, TBN) = n.x·<span class="cR">T</span> + n.y·<span class="cG">B</span> + n.z·<span class="cB">N</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 vertex shader -->
+  <section class="slide" data-id="vshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Building the TBN</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap.vert.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hVert" id="vsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="vsTip" style="min-height:250px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+        <div class="callout" style="font-size:18px">The tangent comes from the mesh, so add a 4th vertex attribute: <code>SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4</code> at location 3.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 two spaces -->
+  <section class="slide" data-id="spaces">
+    <h2 class="rise" style="--i:0"><span class="n">NORMAL MAP TRANSFORM</span>Two ways to light it</h2>
+    <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:40px;margin-top:22px">
+      <div class="stage-box rise" style="--i:1;height:600px"><svg id="spSvg" viewBox="0 0 700 600"></svg><div class="cap" id="spCap"></div></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <div class="acts" id="spMode"><button class="btn" data-k="world">world space</button><button class="btn" data-k="tangent">tangent space</button></div>
+        <div class="card tip" id="spTip" style="min-height:250px"></div>
+        <div class="card readout" id="spRead"></div>
+        <p class="muted" style="font-size:18px">Both give the same answer. Tangent space moves the work to the vertex shader: transform L and V once per vertex instead of N once per pixel.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 pixel shader -->
+  <section class="slide" data-id="pshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · FRAGMENT SHADER</span>Sample, decode, rotate, light</h2>
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap.frag.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hFrag" id="psCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="psTip" style="min-height:260px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 bugs -->
+  <section class="slide" data-id="bugs">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">DEBUGGING</span>Common mistakes</h2>
+        <div class="acts rise" style="--i:1" id="bgMode">
+          <button class="btn sm" data-k="0">correct</button>
+          <button class="btn sm" data-k="1">Y+ map (green flipped)</button>
+          <button class="btn sm" data-k="2">loaded as sRGB</button>
+          <button class="btn sm" data-k="3">forgot * 2 − 1</button>
+          <button class="btn sm" data-k="4">no TBN</button>
+        </div>
+        <div class="acts rise" style="--i:1"><button class="btn sm" id="bgShow">N as color</button></div>
+        <div class="card tip bugTxt rise" style="--i:2" id="bgTip"></div>
+        <div class="hint rise" style="--i:3">pick a mistake · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:660px"><canvas id="bgCv"></canvas><div class="cap" id="bgCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 16 recap -->
+  <section class="slide" data-id="recap">
+    <canvas class="bg" id="rcBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center" style="gap:30px">
+      <div class="eyebrow rise" style="--i:0">Recap</div>
+      <h2 class="rise" style="--i:1;font-size:80px">Bumps from <span class="y">lighting</span>, not triangles.</h2>
+      <div class="chips rise" style="--i:2" id="rcChips"></div>
+    </div>
+  </section>
+
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 17, 9:21 PM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="progress"></div>
+  <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<!-- code listings (plain text, highlighted by app.js) -->
+<script type="text/plain" id="hVert">struct Input
+{
+    float3 Position : TEXCOORD0;
+    float2 TexCoord : TEXCOORD1;
+    float3 Normal   : TEXCOORD2;
+    float4 Tangent  : TEXCOORD3;   // xyz = tangent, w = ±1
+};
+struct Output
+{
+    float4 Position : SV_Position;
+    float2 TexCoord : TEXCOORD0;
+    float3 WorldPos : TEXCOORD1;
+    float3 T : TEXCOORD2;  float3 B : TEXCOORD3;  float3 N : TEXCOORD4;
+};
+Output main(Input input)
+{
+    Output output;
+    float4 world = mul(Model, float4(input.Position, 1.0));
+    output.Position = mul(ViewProjection, world);
+    output.WorldPos = world.xyz;
+    output.TexCoord = input.TexCoord;
+
+    float3 N = normalize(mul((float3x3)Model, input.Normal));
+    float3 T = normalize(mul((float3x3)Model, input.Tangent.xyz));
+    T = normalize(T - N * dot(T, N));      // keep T perpendicular to N
+    output.N = N;
+    output.T = T;
+    output.B = cross(N, T) * input.Tangent.w;
+    return output;
+}</script>
+<script type="text/plain" id="hFrag">Texture2D<float4> AlbedoMap : register(t0, space2);
+Texture2D<float4> NormalMap : register(t1, space2);
+SamplerState AlbedoSampler  : register(s0, space2);
+SamplerState NormalSampler  : register(s1, space2);
+cbuffer Light : register(b0, space3)
+{
+    float3 LightPosition;  float3 LightColor;  float3 Ambient;
+};
+struct Input
+{
+    float2 TexCoord : TEXCOORD0;
+    float3 WorldPos : TEXCOORD1;
+    float3 T : TEXCOORD2;  float3 B : TEXCOORD3;  float3 N : TEXCOORD4;
+};
+float4 main(Input input) : SV_Target0
+{
+    float3 albedo = AlbedoMap.Sample(AlbedoSampler, input.TexCoord).rgb;
+
+    float3 n = NormalMap.Sample(NormalSampler, input.TexCoord).rgb;
+    n = n * 2.0 - 1.0;                       // color -> direction
+
+    float3x3 TBN = float3x3(normalize(input.T), normalize(input.B), normalize(input.N));
+    float3 N = normalize(mul(n, TBN));       // tangent -> world
+
+    float3 L = normalize(LightPosition - input.WorldPos);
+    float diffuse = max(dot(N, L), 0.0);
+    return float4(albedo * (Ambient + LightColor * diffuse), 1.0);
+}</script>
+<script>(() => {
+"use strict";
+const Y="#ffc20e", BLUE="#6ab8ff", GREEN="#5fd68a", RED="#ff5a4e", AMBER="#ff8a1f", PURPLE="#b18cff", INK="#f3f1ea", MUTE="#9b988f", LINE="#2e2e35";
+const stage=document.getElementById("stage");
+const slides=[...document.querySelectorAll(".slide")];
+const $=id=>document.getElementById(id);
+const NS="http://www.w3.org/2000/svg";
+const svgEl=(tag,attrs={},parent)=>{ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; };
+const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[(Math.random()*a.length)|0];
+const ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+// seeded random, so demos look the same every class
+function srand(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const gauss=r=>{ let u=0,v=0; while(!u) u=r(); while(!v) v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+const fmt=(v,d=2)=>{ const s=(+v).toFixed(d); return s.replace(/\.?0+$/,"")||"0"; };
+const fx=(v,d=2)=>(v<0?"−":"")+Math.abs(v).toFixed(d);
+let cur=-1;
+
+/* ---------- stage + canvas sizing ---------- */
+function fitStage(){
+  const s=Math.min(innerWidth/1600,innerHeight/900);
+  stage.style.transform=`translate(-50%,-50%) scale(${s})`;
+  document.querySelectorAll("canvas").forEach(fitCanvas);
+}
+function fitCanvas(c){
+  if(!c.offsetWidth) return;
+  const r=c.getBoundingClientRect(), dpr=devicePixelRatio||1;
+  const w=Math.max(1,Math.round(r.width*dpr)), h=Math.max(1,Math.round(r.height*dpr));
+  if(c.width!==w||c.height!==h){ c.width=w; c.height=h; }
+  c._k=c.width/c.offsetWidth;
+}
+function ctxOf(c){ const x=c.getContext("2d"); x.setTransform(c._k||1,0,0,c._k||1,0,0); return x; }
+// pointer position in an element's own (unscaled) pixels
+function localXY(e,el){ const r=el.getBoundingClientRect(), k=r.width/el.offsetWidth; return [(e.clientX-r.left)/k,(e.clientY-r.top)/k]; }
+function svgXY(e,svg){ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; const q=p.matrixTransform(svg.getScreenCTM().inverse()); return [q.x,q.y]; }
+function tabs(el,cb){ el.querySelectorAll("button[data-k]").forEach(b=>b.onclick=()=>{ set(b.dataset.k); cb(b.dataset.k); }); function set(k){ el.querySelectorAll("button[data-k]").forEach(b=>b.classList.toggle("on",b.dataset.k===k)); } return set; }
+function toggle(btn,cb){ btn.onclick=()=>{ const on=!btn.classList.contains("on"); btn.classList.toggle("on",on); cb(on); }; return on=>{ btn.classList.toggle("on",on); }; }
+function slider(id,fmtf,cb){ const el=$(id), out=$(id+"O"); const upd=()=>{ if(out) out.textContent=fmtf(+el.value); cb&&cb(+el.value); }; el.addEventListener("input",upd); return { get:()=>+el.value, set:v=>{ el.value=v; upd(); } }; }
+const A={};
+
+/* shared canvas helpers */
+function label(x,t,px,py,col=MUTE,size=14,align="left",font="JetBrains Mono"){ x.fillStyle=col; x.font=`${size}px "${font}",monospace`; x.textAlign=align; x.fillText(t,px,py); x.textAlign="left"; }
+function dot(x,px,py,r,fill,stroke){ x.beginPath(); x.arc(px,py,r,0,7); if(fill){ x.fillStyle=fill; x.fill(); } if(stroke){ x.strokeStyle=stroke; x.lineWidth=2; x.stroke(); } }
+function img(src){ const im=new Image(); im.decoding="async"; im.src=src; return im; }
+function whenLoaded(im,cb){ if(im.complete&&im.naturalWidth) cb(); else im.addEventListener("load",cb,{once:true}); }
+function arrowSvg(g,x1,y1,x2,y2,col,w=4,dash){
+  const a=Math.atan2(y2-y1,x2-x1), h=16;
+  svgEl("line",{x1,y1,x2:x2-Math.cos(a)*h*.6,y2:y2-Math.sin(a)*h*.6,stroke:col,"stroke-width":w,"stroke-linecap":"round","stroke-dasharray":dash||""},g);
+  svgEl("path",{d:`M${x2},${y2} L${x2-Math.cos(a-.4)*h},${y2-Math.sin(a-.4)*h} L${x2-Math.cos(a+.4)*h},${y2-Math.sin(a+.4)*h}Z`,fill:col},g);
+}
+function textSvg(g,t,x,y,col=INK,size=20,anchor="start",weight=500){ const e=svgEl("text",{x,y,fill:col,"font-size":size,"font-family":"JetBrains Mono, monospace","text-anchor":anchor,"font-weight":weight},g); e.textContent=t; return e; }
+
+
+/* ---------- code listings: highlight + line helpers ---------- */
+const KW=new Set("struct return void const if else for while true false cbuffer register in out".split(" "));
+const TY=/^(float|float2|float3|float4|float3x3|float4x4|int|uint|bool|Uint32|Texture2D|TextureCube|SamplerState|SDL_[A-Z][A-Za-z]*[a-z][A-Za-z]*|Input|Output)$/;
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function highlight(src){
+  return src.split("\n").map(line=>{
+    let out="", m; const re=/(\/\/.*$)|("[^"]*")|(\b\d+(?:\.\d+)?f?\b)|([A-Za-z_][A-Za-z0-9_]*)|([^A-Za-z0-9_"\/]+|\/)/g;
+    while((m=re.exec(line))){
+      if(m[1]) out+=`<span class="c">${esc(m[1])}</span>`;
+      else if(m[2]) out+=`<span class="s">${esc(m[2])}</span>`;
+      else if(m[3]) out+=`<span class="nu">${m[3]}</span>`;
+      else if(m[4]){ const w=m[4], next=line.slice(re.lastIndex).trimStart()[0];
+        if(KW.has(w)) out+=`<span class="kw">${w}</span>`;
+        else if(/^(SV_\w+|TEXCOORD\d)$/.test(w)) out+=`<span class="sem">${w}</span>`;
+        else if(/^SDL_[A-Z0-9_]+$/.test(w)) out+=`<span class="k2">${w}</span>`;
+        else if(TY.test(w)) out+=`<span class="ty">${w}</span>`;
+        else if(next==="(") out+=`<span class="fn">${w}</span>`;
+        else out+=w; }
+      else out+=esc(m[5]);
+    }
+    return `<span class="ln">${out||" "}</span>`;
+  }).join("");
+}
+function setCode(pre,src){ pre.innerHTML=highlight(src); pre._lines=[...pre.querySelectorAll(".ln")]; }
+document.querySelectorAll("pre.src[data-code]").forEach(p=>setCode(p,$(p.dataset.code).textContent));
+// highlight line ranges [[a,b],...] (1-based); empty = no dimming
+function hlLines(pre,ranges){
+  pre.classList.toggle("dim",ranges.length>0);
+  pre._lines.forEach((l,i)=>l.classList.toggle("hl",ranges.some(([a,b])=>i+1>=a&&i+1<=b)));
+}
+// hover a line to explain it: tips = [[a,b,html],...], the smallest matching range wins
+function codeTips(pre,tipEl,tips,idle){
+  tipEl.innerHTML=idle;
+  pre._lines.forEach((l,i)=>{
+    const n=i+1, cands=tips.filter(t=>n>=t[0]&&n<=t[1]).sort((p,q)=>(p[1]-p[0])-(q[1]-q[0]));
+    if(!cands.length) return;
+    l.classList.add("hov");
+    l.addEventListener("mouseenter",()=>{ const t=cands[0]; hlLines(pre,[[t[0],t[1]]]); tipEl.innerHTML=t[2]; });
+  });
+  pre.addEventListener("mouseleave",()=>{ hlLines(pre,[]); tipEl.innerHTML=idle; });
+}
+
+/* ---------- tiny mat4 / vec3 library (column-major, like glm) ---------- */
+const V3={ sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]], norm:a=>{ const l=Math.hypot(...a)||1; return a.map(v=>v/l); } };
+const M4={
+  id:()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),
+  mul(a,b){ const o=new Float32Array(16); for(let c=0;c<4;c++) for(let r=0;r<4;r++){ let s=0; for(let k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k]; o[c*4+r]=s; } return o; },
+  persp(fy,asp,n,f){ const t=1/Math.tan(fy/2), o=new Float32Array(16); o[0]=t/asp; o[5]=t; o[10]=(f+n)/(n-f); o[11]=-1; o[14]=2*f*n/(n-f); return o; },
+  lookAt(e,c,up){ const z=V3.norm(V3.sub(e,c)), x=V3.norm(V3.cross(up,z)), y=V3.cross(z,x);
+    return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -V3.dot(x,e),-V3.dot(y,e),-V3.dot(z,e),1]); },
+  T(x,y,z){ const o=M4.id(); o[12]=x; o[13]=y; o[14]=z; return o; },
+  S(x,y=x,z=x){ const o=M4.id(); o[0]=x; o[5]=y; o[10]=z; return o; },
+  RX(a){ const c=Math.cos(a), s=Math.sin(a), o=M4.id(); o[5]=c; o[6]=s; o[9]=-s; o[10]=c; return o; },
+  RY(a){ const c=Math.cos(a), s=Math.sin(a), o=M4.id(); o[0]=c; o[2]=-s; o[8]=s; o[10]=c; return o; },
+  rotOnly(m){ const o=new Float32Array(m); o[12]=o[13]=o[14]=0; return o; },   // like (float3x3)View
+  chain:(...ms)=>ms.reduce((a,b)=>M4.mul(a,b))
+};
+
+M4.apply=(m,v)=>{ const o=[0,0,0,0]; for(let r=0;r<4;r++) o[r]=m[r]*v[0]+m[4+r]*v[1]+m[8+r]*v[2]+m[12+r]*v[3]; return o; };
+// project a world point to CSS pixels of a w×h view
+function toScreen(VP,p,w,h){ const c=M4.apply(VP,[p[0],p[1],p[2],1]); return [(c[0]/c[3]*.5+.5)*w,(.5-c[1]/c[3]*.5)*h,c[3]]; }
+function arrow2d(x,x1,y1,x2,y2,col,w=3,head=12){ const a=Math.atan2(y2-y1,x2-x1); x.strokeStyle=col; x.fillStyle=col; x.lineWidth=w; x.lineCap="round";
+  x.beginPath(); x.moveTo(x1,y1); x.lineTo(x2-Math.cos(a)*head*.6,y2-Math.sin(a)*head*.6); x.stroke();
+  x.beginPath(); x.moveTo(x2,y2); x.lineTo(x2-Math.cos(a-.4)*head,y2-Math.sin(a-.4)*head); x.lineTo(x2-Math.cos(a+.4)*head,y2-Math.sin(a+.4)*head); x.closePath(); x.fill(); }
+
+/* ---------- images ----------
+   the source map is OpenGL-style (Y+: green = up the image). SDL3 GPU puts UV (0,0) at the top-left, so +V and the
+   bitangent point DOWN the image. We flip green once on load to get a DirectX-style (Y−) map that matches. */
+const IM={ alb:img("img/stones-albedo.jpg"), nrm:img("img/stones-normal.jpg") };
+const NRM={canvas:null,data:null,size:512,ready:false};
+whenLoaded(IM.nrm,()=>{ const s=NRM.size, c=document.createElement("canvas"); c.width=c.height=s; const x=c.getContext("2d"); x.drawImage(IM.nrm,0,0,s,s);
+  const d=x.getImageData(0,0,s,s), p=d.data; for(let i=0;i<p.length;i+=4) p[i+1]=255-p[i+1]; x.putImageData(d,0,0);
+  NRM.canvas=c; NRM.data=p; NRM.ready=true; });
+function gridCanvas(){ const s=512, c=document.createElement("canvas"); c.width=c.height=s; const x=c.getContext("2d"), d=x.createImageData(s,s);
+  for(let j=0;j<s;j++) for(let i=0;i<s;i++){ const k=(j*s+i)*4, line=(i%64<3||j%64<3)?1:0; d.data[k]=40+i/s*215; d.data[k+1]=40+j/s*215; d.data[k+2]=55; if(line){ d.data[k]=d.data[k+1]=d.data[k+2]=30; } d.data[k+3]=255; }
+  x.putImageData(d,0,0); return c; }
+
+/* ---------- one shared WebGL2 context, copied into each demo's 2D canvas ---------- */
+const GL=(()=>{
+  const cv=document.createElement("canvas");
+  const gl=cv.getContext("webgl2",{antialias:true,preserveDrawingBuffer:true,alpha:false});
+  if(!gl){ console.warn("WebGL2 not available"); return null; }
+  const AN=gl.getExtension("EXT_texture_filter_anisotropic");
+  const SETTER={[gl.FLOAT]:"uniform1f",[gl.FLOAT_VEC2]:"uniform2fv",[gl.FLOAT_VEC3]:"uniform3fv",[gl.FLOAT_VEC4]:"uniform4fv",[gl.INT]:"uniform1i",[gl.BOOL]:"uniform1i",[gl.SAMPLER_2D]:"uniform1i"};
+  function program(vs,fs){
+    const p=gl.createProgram();
+    for(const [t,s] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){ const sh=gl.createShader(t); gl.shaderSource(sh,"#version 300 es\nprecision highp float;\n"+s); gl.compileShader(sh);
+      if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); gl.attachShader(p,sh); }
+    gl.bindAttribLocation(p,0,"aPos"); gl.bindAttribLocation(p,1,"aUV"); gl.bindAttribLocation(p,2,"aNrm"); gl.bindAttribLocation(p,3,"aTan");
+    gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const U={}; for(let i=0;i<gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);i++){ const a=gl.getActiveUniform(p,i); U[a.name]={loc:gl.getUniformLocation(p,a.name),type:a.type}; }
+    return {p,U};
+  }
+  function use(pr,u){ gl.useProgram(pr.p); for(const k in u){ const e=pr.U[k]; if(!e) continue; const v=u[k];
+    if(e.type===gl.FLOAT_MAT4) gl.uniformMatrix4fv(e.loc,false,v); else gl[SETTER[e.type]](e.loc,typeof v==="boolean"?+v:v); } }
+  function mesh(d){
+    const vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+    [[0,d.pos,3],[1,d.uv,2],[2,d.nrm,3],[3,d.tan,4]].forEach(([loc,arr,n])=>{ if(!arr) return; const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(arr),gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0); });
+    const ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint32Array(d.idx),gl.STATIC_DRAW);
+    gl.bindVertexArray(null); return {vao,count:d.idx.length};
+  }
+  function draw(m){ gl.bindVertexArray(m.vao); gl.drawElements(gl.TRIANGLES,m.count,gl.UNSIGNED_INT,0); }
+  function sampler(){ const s=gl.createSampler();
+    gl.samplerParameteri(s,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.samplerParameteri(s,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    for(const p of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T]) gl.samplerParameteri(s,p,gl.REPEAT);
+    if(AN) gl.samplerParameterf(s,AN.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,gl.getParameter(AN.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    return s; }
+  function blankTex(rgba){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(rgba)); return t; }
+  // RGBA8: a linear (UNORM) format, like SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM
+  function texFrom(source){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source); gl.generateMipmap(gl.TEXTURE_2D); return t; }
+  function bind(unit,t,s){ gl.activeTexture(gl.TEXTURE0+unit); gl.bindTexture(gl.TEXTURE_2D,t); gl.bindSampler(unit,s||null); }
+  function render(target,fn){
+    fitCanvas(target); const w=target.width, h=target.height; if(w<2||h<2) return;
+    if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+    gl.viewport(0,0,w,h); gl.clearColor(.051,.051,.059,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE);
+    fn(w,h);
+    const x=target.getContext("2d"); x.setTransform(1,0,0,1,0,0); x.drawImage(cv,0,0);
+  }
+  return {gl,program,use,mesh,draw,sampler,blankTex,texFrom,bind,render};
+})();
+
+/* ---------- meshes (with tangents computed from UV deltas, like a model importer does) ---------- */
+function withTangents(d){
+  const n=d.pos.length/3, ta=new Float32Array(n*3), ba=new Float32Array(n*3);
+  const P=i=>[d.pos[i*3],d.pos[i*3+1],d.pos[i*3+2]];
+  for(let k=0;k<d.idx.length;k+=3){ const i0=d.idx[k], i1=d.idx[k+1], i2=d.idx[k+2];
+    const e1=V3.sub(P(i1),P(i0)), e2=V3.sub(P(i2),P(i0));
+    const du1=d.uv[i1*2]-d.uv[i0*2], dv1=d.uv[i1*2+1]-d.uv[i0*2+1], du2=d.uv[i2*2]-d.uv[i0*2], dv2=d.uv[i2*2+1]-d.uv[i0*2+1];
+    const det=du1*dv2-du2*dv1; if(Math.abs(det)<1e-12) continue; const r=1/det;
+    for(const i of [i0,i1,i2]) for(let q=0;q<3;q++){ ta[i*3+q]+=(e1[q]*dv2-e2[q]*dv1)*r; ba[i*3+q]+=(e2[q]*du1-e1[q]*du2)*r; } }
+  d.tan=[];
+  for(let i=0;i<n;i++){ const N=[d.nrm[i*3],d.nrm[i*3+1],d.nrm[i*3+2]]; let T=[ta[i*3],ta[i*3+1],ta[i*3+2]];
+    T=V3.sub(T,N.map(v=>v*V3.dot(N,T))); if(Math.hypot(...T)<1e-6) T=Math.abs(N[0])<.9?V3.cross([0,1,0],N):[0,0,1];
+    T=V3.norm(T); const w=V3.dot(V3.cross(N,T),[ba[i*3],ba[i*3+1],ba[i*3+2]])<0?-1:1; d.tan.push(...T,w); }
+  return d; }
+function quadData(){ return {pos:[-1,1,0, 1,1,0, 1,-1,0, -1,-1,0], uv:[0,0, 1,0, 1,1, 0,1], nrm:[0,0,1,0,0,1,0,0,1,0,0,1], idx:[0,1,2,0,2,3]}; }
+function sphereData(R=1,la=48,lo=96){
+  const pos=[],uv=[],nrm=[],idx=[];
+  for(let i=0;i<=la;i++){ const th=i/la*Math.PI; for(let j=0;j<=lo;j++){ const ph=j/lo*Math.PI*2; const n=[Math.sin(th)*Math.sin(ph),Math.cos(th),Math.sin(th)*Math.cos(ph)];
+    pos.push(...n.map(v=>v*R)); nrm.push(...n); uv.push(j/lo,i/la); } }
+  for(let i=0;i<la;i++) for(let j=0;j<lo;j++){ const a=i*(lo+1)+j, b=a+lo+1; idx.push(a,b,a+1,a+1,b,b+1); }
+  return {pos,uv,nrm,idx,la,lo};
+}
+// a curved wall: part of a cylinder facing the camera
+function wallData(nx=64,ny=8){ const pos=[],uv=[],nrm=[],idx=[], R=1.3;
+  for(let j=0;j<=ny;j++) for(let i=0;i<=nx;i++){ const s=i/nx, t=j/ny, a=(s-.5)*2.6;
+    pos.push(R*Math.sin(a),(.5-t)*1.6,R*Math.cos(a)-R*.55); nrm.push(Math.sin(a),0,Math.cos(a)); uv.push(s*2,t); }
+  for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){ const a=j*(nx+1)+i, b=a+nx+1; idx.push(a,b,a+1,a+1,b,b+1); }
+  return {pos,uv,nrm,idx}; }
+
+const DATA={quad:withTangents(quadData()), sphere:withTangents(sphereData()), wall:withTangents(wallData())};
+const MESH={}, TX={}, SM={}, P={};
+const SRC={
+  litV:`in vec3 aPos; in vec2 aUV; in vec3 aNrm; in vec4 aTan; uniform mat4 uModel, uVP; uniform vec2 uTiling; out vec3 vW, vN, vT, vB; out vec2 vUV;
+    void main(){ vec4 w=uModel*vec4(aPos,1.); vW=w.xyz; mat3 m=mat3(uModel);
+      vec3 N=normalize(m*aNrm), T=normalize(m*aTan.xyz); T=normalize(T-N*dot(T,N));
+      vN=N; vT=T; vB=cross(N,T)*aTan.w; vUV=aUV*uTiling; gl_Position=uVP*w; }`,
+  litF:`in vec3 vW, vN, vT, vB; in vec2 vUV; uniform sampler2D uAlb, uNrm; uniform int uUseAlb, uUseNrm, uBug, uShow;
+    uniform vec3 uLight, uCam; uniform float uAmb; out vec4 o;
+    void main(){ vec3 Ng=normalize(vN), T=normalize(vT), B=normalize(vB);
+      vec3 c=texture(uNrm,vUV).rgb;
+      if(uBug==1) c.g=1.-c.g;                 // a Y+ (OpenGL-style) map
+      if(uBug==2) c=pow(c,vec3(2.2));          // sampled through an sRGB format
+      vec3 n = uBug==3 ? c : c*2.-1.;          // forgot to decode
+      vec3 N=Ng; if(uUseNrm==1) N = uBug==4 ? normalize(n) : normalize(mat3(T,B,Ng)*n);
+      if(uShow==1){ o=vec4(N*.5+.5,1.); return; }
+      vec3 alb=uUseAlb==1?texture(uAlb,vUV).rgb:vec3(.78);
+      vec3 L=normalize(uLight-vW), V=normalize(uCam-vW), H=normalize(L+V);
+      float d=max(dot(N,L),0.), s=pow(max(dot(N,H),0.),48.)*.3*step(0.,dot(Ng,L));
+      o=vec4(alb*(uAmb+d*.95)+vec3(s),1.); }`
+};
+if(GL){
+  try{
+    P.lit=GL.program(SRC.litV,SRC.litF);
+    for(const k in DATA) MESH[k]=GL.mesh(DATA[k]);
+    SM.mip=GL.sampler();
+    TX.alb={t:GL.blankTex([128,128,128,255])}; TX.nrm={t:GL.blankTex([128,128,255,255])}; TX.grid={t:GL.texFrom(gridCanvas())};
+    whenLoaded(IM.alb,()=>{ TX.alb.t=GL.texFrom(IM.alb); });
+    whenLoaded(IM.nrm,()=>{ TX.nrm.t=GL.texFrom(NRM.canvas); });
+  }catch(e){ console.error(e); }
+}
+function noGL(cv,msg="This demo needs WebGL2."){ const x=ctxOf(cv); x.fillStyle="#0d0d0f"; x.fillRect(0,0,cv.offsetWidth,cv.offsetHeight); label(x,msg,cv.offsetWidth/2,cv.offsetHeight/2,MUTE,18,"center"); }
+function orbit(el,st,{minP=-1.2,maxP=1.2,k=.008}={}){
+  let last=null;
+  el.addEventListener("pointerdown",e=>{ last=[e.clientX,e.clientY]; el.setPointerCapture(e.pointerId); });
+  el.addEventListener("pointermove",e=>{ if(!last) return; st.yaw+=(e.clientX-last[0])*k; st.pitch=clamp(st.pitch+(e.clientY-last[1])*k,minP,maxP); last=[e.clientX,e.clientY]; st.moved=true; });
+  el.addEventListener("pointerup",()=>last=null); el.addEventListener("pointercancel",()=>last=null);
+  return st;
+}
+// draw one lit, normal-mapped mesh; returns the view-projection matrix (for overlays)
+function litScene(cv,o){
+  if(!GL||!P.lit){ noGL(cv); return null; }
+  const {mesh,model=M4.id(),eye=[0,0,3.2],target=[0,0,0],light=[1,1,2],tiling=[1,1],alb=1,nrm=1,bug=0,show=0,amb=.12,fov=.9,albTex="alb"}=o;
+  let VP=null;
+  GL.render(cv,(w,h)=>{ VP=M4.mul(M4.persp(fov,w/h,.05,100),M4.lookAt(eye,target,[0,1,0]));
+    GL.bind(0,TX[albTex].t,SM.mip); GL.bind(1,TX.nrm.t,SM.mip);
+    GL.use(P.lit,{uModel:model,uVP:VP,uTiling:tiling,uAlb:0,uNrm:1,uUseAlb:alb,uUseNrm:nrm,uBug:bug,uShow:show,uLight:light,uCam:eye,uAmb:amb}); GL.draw(MESH[mesh]); });
+  return VP;
+}
+function eyeOf(st,R){ return [Math.sin(st.yaw)*Math.cos(st.pitch)*R,-Math.sin(st.pitch)*R,Math.cos(st.yaw)*Math.cos(st.pitch)*R]; }
+function lightDot(cv,VP,p,col=Y){ if(!VP) return; const x=ctxOf(cv), [sx,sy,w]=toScreen(VP,p,cv.offsetWidth,cv.offsetHeight); if(w<=0) return;
+  const g=x.createRadialGradient(sx,sy,0,sx,sy,26); g.addColorStop(0,"rgba(255,194,14,.9)"); g.addColorStop(1,"rgba(255,194,14,0)"); x.fillStyle=g; x.beginPath(); x.arc(sx,sy,26,0,7); x.fill(); dot(x,sx,sy,6,col); }
+// the "seen from above" glyph for a tangent-space normal
+function normalGlyph(cv,n){ fitCanvas(cv); const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, cx=W/2, cy=H/2, R=Math.min(W,H)/2-18;
+  x.clearRect(0,0,W,H); x.strokeStyle=LINE; x.lineWidth=2; x.beginPath(); x.arc(cx,cy,R,0,7); x.stroke();
+  x.setLineDash([4,5]); x.beginPath(); x.moveTo(cx-R,cy); x.lineTo(cx+R,cy); x.moveTo(cx,cy-R); x.lineTo(cx,cy+R); x.stroke(); x.setLineDash([]);
+  label(x,"+x",cx+R-4,cy-6,RED,12,"right"); label(x,"+y",cx+6,cy+R-4,GREEN,12);
+  if(!n) return; const tx=cx+n[0]*R, ty=cy+n[1]*R;
+  dot(x,cx,cy,5+Math.max(0,n[2])*6,"rgba(106,184,255,.55)");
+  if(Math.hypot(n[0],n[1])>.03) arrow2d(x,cx,cy,tx,ty,Y,3,11); else dot(x,cx,cy,5,Y); }
+const f2=v=>fx(v,2);
+
+/* ---------- title + recap: a stone wall under a wandering light ---------- */
+function wallBg(id,speed){ const cv=$(id); let t0=0;
+  return { enter(){ t0=performance.now(); },
+    tick(dt,now){ const t=(now-t0)/1000*speed, L=[Math.sin(t*.7)*1.7,Math.cos(t*.53)*.8,.55];
+      litScene(cv,{mesh:"quad",model:M4.S(2,2,1),eye:[0,0,2.1],light:L,tiling:[2,2],amb:.06}); } }; }
+A.title=wallBg("tiBg",1); A.recap=wallBg("rcBg",.8);
+$("rcChips").innerHTML=["normal map","RGB → XYZ","n = c · 2 − 1","per-pixel normals","baking","height map","tangent space","tangent","bitangent","TBN matrix","orthonormal","inverse = transpose","mul(n, TBN)","world vs tangent space","Y− (DirectX-style) maps","UNORM, not sRGB"]
+  .map(t=>`<span class="tag t-y">${t}</span>`).join("");
+
+/* ---------- what: two triangles, toggle the map, light follows the mouse ---------- */
+A.what=(()=>{ const cv=$("whCv"); let nrm=1, alb=1, mouse=null, t=0;
+  $("whNrm").onclick=()=>{ nrm^=1; $("whNrm").classList.toggle("on",!!nrm); $("whNrm").textContent="normal map: "+(nrm?"on":"off"); };
+  $("whAlb").onclick=()=>{ alb^=1; $("whAlb").classList.toggle("on",!!alb); $("whAlb").textContent="albedo: "+(alb?"on":"off"); };
+  $("whAlb").classList.add("on");
+  cv.addEventListener("pointermove",e=>{ const [mx,my]=localXY(e,cv); mouse=[(mx/cv.offsetWidth*2-1)*1.3,(1-my/cv.offsetHeight*2)*1.3]; });
+  cv.addEventListener("pointerleave",()=>mouse=null);
+  return { tick(dt){ t+=dt/1000; const L=mouse?[mouse[0],mouse[1],.6]:[Math.sin(t*.8)*1.1,Math.cos(t*.6)*.8,.6];
+    const VP=litScene(cv,{mesh:"quad",model:M4.S(1.15),eye:[0,0,3],light:L,nrm,alb,amb:.08}); lightDot(cv,VP,L);
+    $("whCap").textContent=`2 triangles · normal map ${nrm?"on":"off"}`; } }; })();
+
+/* ---------- map: hover a texel, read its direction ---------- */
+A.map=(()=>{ const cv=$("mpCv"); let hov=null;
+  cv.addEventListener("pointermove",e=>{ const [mx,my]=localXY(e,cv); hov=[mx/cv.offsetWidth,my/cv.offsetHeight]; });
+  cv.addEventListener("pointerleave",()=>hov=null);
+  function show(c){ const n0=c.map(v=>v/255*2-1), n=V3.norm(n0);
+    $("mpRead").innerHTML=`<span class="k">color (0–255)</span><span class="cR">${c[0]}</span>, <span class="cG">${c[1]}</span>, <span class="cB">${c[2]}</span><br>
+      <span class="k" style="margin-top:8px">normal = color / 255 * 2 − 1</span>(<span class="cR">${f2(n0[0])}</span>, <span class="cG">${f2(n0[1])}</span>, <span class="cB">${f2(n0[2])}</span>)`;
+    $("mpSw").style.background=`rgb(${c})`; normalGlyph($("mpArrow"),n); }
+  return { enter(){ show([128,128,255]); },
+    tick(){ const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight; x.fillStyle="#0d0d0f"; x.fillRect(0,0,W,H);
+      if(!NRM.ready){ label(x,"loading…",W/2,H/2,MUTE,16,"center"); return; }
+      x.imageSmoothingEnabled=true; x.drawImage(NRM.canvas,0,0,W,H);
+      if(!hov) return;
+      const s=NRM.size, i=clamp(Math.floor(hov[0]*s),0,s-1), j=clamp(Math.floor(hov[1]*s),0,s-1), k=(j*s+i)*4, c=[NRM.data[k],NRM.data[k+1],NRM.data[k+2]];
+      show(c); const px=hov[0]*W, py=hov[1]*H;
+      x.strokeStyle=Y; x.lineWidth=2; x.strokeRect(px-9,py-9,18,18);
+      const n=V3.norm(c.map(v=>v/255*2-1)); arrow2d(x,px,py,px+n[0]*90,py+n[1]*90,Y,3,12); } }; })();
+
+/* ---------- decode: sliders → vector ---------- */
+A.decode=(()=>{ const cv=$("dcLine"); const col=[0,0,0];
+  const sl=["dcR","dcG","dcB"].map((id,i)=>slider(id,v=>v,v=>{ col[i]=v; upd(); }));
+  const PRE={flat:[128,128,255],right:[218,128,218],down:[128,218,218],bad:[255,255,128]};
+  tabs($("dcPre"),k=>PRE[k].forEach((v,i)=>sl[i].set(v)));
+  function upd(){ const c01=col.map(v=>v/255), n=c01.map(v=>v*2-1), len=Math.hypot(...n), nn=V3.norm(n);
+    $("dcRead").innerHTML=`<span class="k">color / 255</span>(<span class="cR">${f2(c01[0])}</span>, <span class="cG">${f2(c01[1])}</span>, <span class="cB">${f2(c01[2])}</span>)
+      <span class="k" style="margin-top:8px">* 2 − 1</span>(<span class="cR">${f2(n[0])}</span>, <span class="cG">${f2(n[1])}</span>, <span class="cB">${f2(n[2])}</span>)
+      <span class="k" style="margin-top:8px">length</span><b style="color:${Math.abs(len-1)<.05?GREEN:RED}">${len.toFixed(2)}</b> ${Math.abs(len-1)<.05?"":"<span class='muted'>→ normalize()</span>"}`;
+    normalGlyph($("dcArrow"),nn); draw(); }
+  function draw(){ fitCanvas(cv); const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, l=70, r=W-50; x.fillStyle="#0d0d0f"; x.fillRect(0,0,W,H);
+    const yt=70, yb=H-70; [[yt,"color","0","0.5","1"],[yb,"normal","−1","0","1"]].forEach(([y,nm,a,b,c])=>{
+      x.strokeStyle=MUTE; x.lineWidth=2; x.beginPath(); x.moveTo(l,y); x.lineTo(r,y); x.stroke();
+      [[l,a],[(l+r)/2,b],[r,c]].forEach(([px,t])=>{ x.beginPath(); x.moveTo(px,y-8); x.lineTo(px,y+8); x.stroke(); label(x,t,px,y+(y===yt?-16:30),MUTE,15,"center"); });
+      label(x,nm,l-14,y+5,INK,15,"right"); });
+    [RED,GREEN,BLUE].forEach((c,i)=>{ const u=col[i]/255, px=l+u*(r-l), py1=yt+12+i*4, py2=yb-12-(2-i)*4;
+      x.strokeStyle=c; x.globalAlpha=.6; x.setLineDash([5,5]); x.beginPath(); x.moveTo(px,yt); x.lineTo(px,yb); x.stroke(); x.setLineDash([]); x.globalAlpha=1;
+      dot(x,px,yt,8,c); dot(x,px,yb,8,c); const lt="rgb"[i]+" "+(u*2-1).toFixed(2); label(x,lt,u>.8?px-12:px+12,yt+32+i*44,c,15,u>.8?"right":"left"); }); }
+  return { enter(){ draw(); } , init(){ sl.forEach((s,i)=>s.set(PRE.flat[i])); } }; })();
+A.decode.init();
+
+/* ---------- vertex normals vs map normals: a 2D cross-section ---------- */
+A.pernormal=(()=>{ const cv=$("pnCv"); let ang=-40;
+  slider("pnL",v=>v+"°",v=>{ ang=v; }).set(-40);
+  const r=srand(7);
+  const W6=[[.018,10],[.041,6],[.07,3],[.011,7]].map(([f,a])=>({f,a,p:r()*6.28}));
+  const h=x=>W6.reduce((s,w)=>s+w.a*Math.sin(x*w.f+w.p),0), dh=x=>W6.reduce((s,w)=>s+w.a*w.f*Math.cos(x*w.f+w.p),0);
+  function row(x,y0,title,perPixel,W,L){ const l=60, rr=W-60;
+    label(x,title,l,y0-90,INK,17);
+    x.setLineDash([5,6]); x.strokeStyle="rgba(155,152,143,.55)"; x.lineWidth=2; x.beginPath(); for(let px=l;px<=rr;px+=3){ const yy=y0-h(px); px===l?x.moveTo(px,yy):x.lineTo(px,yy); } x.stroke(); x.setLineDash([]);
+    x.strokeStyle=INK; x.lineWidth=3; x.beginPath(); x.moveTo(l,y0); x.lineTo(rr,y0); x.stroke();
+    // shading strip
+    for(let px=l;px<rr;px+=2){ const n=perPixel?V3.norm([-dh(px),1,0]):[0,1,0], d=Math.max(0,n[0]*L[0]+n[1]*L[1]), v=Math.round(25+d*215);
+      x.fillStyle=`rgb(${v},${v},${Math.round(v*.95)})`; x.fillRect(px,y0+18,3,34); }
+    
+    if(!perPixel){ [l,(l+rr)/2,rr].forEach(px=>{ dot(x,px,y0,6,Y); arrow2d(x,px,y0,px,y0-62,BLUE,3,11); }); label(x,"one normal per vertex, all the same → same brightness everywhere",l,y0+80,MUTE,15); }
+    else { for(let px=l+10;px<rr;px+=34){ const n=V3.norm([-dh(px),1,0]); arrow2d(x,px,y0,px+n[0]*48,y0-n[1]*48,BLUE,2,9); } label(x,"a normal from the map at every pixel → bumps in the lighting",l,y0+80,MUTE,15); } }
+  return { tick(){ const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight; x.fillStyle="#0d0d0f"; x.fillRect(0,0,W,H);
+    const a=ang*Math.PI/180, L=[Math.sin(a),Math.cos(a)];
+    row(x,165,"VERTEX NORMALS · one flat triangle",false,W,L); row(x,415,"MAP NORMALS · same triangle + normal map",true,W,L);
+    const sx=W-260+L[0]*160, sy=46+(1-L[1])*40; dot(x,sx,sy,13,Y); arrow2d(x,sx,sy,sx-L[0]*60,sy+L[1]*60,Y,3,11); label(x,"light",sx+20,sy+5,Y,14); } }; })();
+
+/* ---------- layers: albedo, normal, N-as-color ---------- */
+A.layers=(()=>{ const cv=$("lyCv"), st=orbit(cv,{yaw:0,pitch:-.15}); const on={alb:1,nrm:1,show:0}; let t=0;
+  $("lyFigs").querySelectorAll("figure").forEach(f=>f.onclick=()=>{ const k=f.dataset.k; on[k]^=1; sync(); });
+  function sync(){ $("lyFigs").querySelectorAll("figure").forEach(f=>{ const k=f.dataset.k; f.classList.toggle("on",!!on[k]); f.classList.toggle("off",!on[k]); });
+    $("lyCap").textContent=on.show?"showing N as color":(on.alb&&on.nrm?"final: albedo × lighting with map normals":on.alb?"albedo, vertex normals":on.nrm?"normal map only, gray albedo":"no maps"); }
+  function thumbs(){ if(!NRM.ready) return; [["lyNrm",0],["lyShow",1]].forEach(([id,k])=>{ const c=$(id); fitCanvas(c); const x=ctxOf(c), W=c.offsetWidth, H=c.offsetHeight;
+    x.drawImage(NRM.canvas,0,0,W,H); if(k){ x.fillStyle="rgba(13,13,15,.55)"; x.fillRect(0,0,W,H); label(x,"N · 0.5 + 0.5",W/2,H/2+5,INK,15,"center"); } }); }
+  return { enter(){ sync(); thumbs(); },
+    tick(dt){ t+=dt/1000; if(!st.moved) st.yaw+=dt*.00015; const eye=eyeOf(st,3.1), L=[Math.cos(t*.7)*2.4,1.2,Math.sin(t*.7)*2.4];
+      const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],alb:on.alb,nrm:on.nrm,show:on.show}); lightDot(cv,VP,L); } }; })();
+
+/* ---------- why tangent space ---------- */
+A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:0,pitch:0},{minP:-.8,maxP:.8}); let mode="raw", mesh="wall", show=0;
+  const TIP={raw:`<span class="k">map normal used as a world normal</span>Only the part that faces <b>world +Z</b> looks right. Faces turned toward the light get no extra light, and the bumps light up from the wrong side.`,
+    tbn:`<span class="k">rotated by the TBN matrix</span>Each pixel’s map normal is rotated to follow <b>its own</b> surface, so the whole model lights correctly.`};
+  const setM=tabs($("wyMode"),k=>{ mode=k; $("wyTip").innerHTML=TIP[k]; }); setM("raw"); $("wyTip").innerHTML=TIP.raw;
+  const setS=tabs($("wyMesh"),k=>{ mesh=k; }); setS("wall");
+  toggle($("wyShow"),v=>show=+v);
+  return { tick(){ const eye=eyeOf(st,3.4), L=[2.6,1.3,1.2];
+    const VP=litScene(cv,{mesh,eye,light:L,tiling:mesh==="wall"?[1,1]:[3,1.5],bug:mode==="raw"?4:0,show}); lightDot(cv,VP,L);
+    $("wyCap").textContent=mode==="raw"?"N = normalize(n)   ✗":"N = normalize(mul(n, TBN))   ✓"; } }; })();
+
+/* ---------- frame: T B N at vertices ---------- */
+A.frame=(()=>{ const cv=$("frCv"), st=orbit(cv,{yaw:.5,pitch:-.35}); let mouse=null, pick=null;
+  cv.addEventListener("pointermove",e=>{ mouse=localXY(e,cv); }); cv.addEventListener("pointerleave",()=>mouse=null);
+  const d=DATA.sphere, S=[]; for(let i=4;i<=d.la-4;i+=4) for(let j=0;j<d.lo;j+=8){ const k=i*(d.lo+1)+j; S.push(k); }
+  const g=(a,k,n)=>a.slice(k*n,k*n+3);
+  function show(k){ if(k==null){ $("frRead").innerHTML=`<span class="k">vertex</span><span class="muted">hover a vertex</span>`; return; }
+    const T=g(d.tan,k,4), N=g(d.nrm,k,3), B=V3.cross(N,T).map(v=>v*d.tan[k*4+3]), uv=[d.uv[k*2],d.uv[k*2+1]];
+    const v=a=>`(${a.map(f2).join(", ")})`;
+    $("frRead").innerHTML=`<span class="k">vertex · uv (${uv.map(f2).join(", ")})</span><span class="cR">T ${v(T)}</span><br><span class="cG">B ${v(B)}</span><br><span class="cB">N ${v(N)}</span>`; }
+  return { enter(){ show(null); },
+    tick(){ const eye=eyeOf(st,3.3), L=[2,2,2.5];
+      const VP=litScene(cv,{mesh:"sphere",eye,light:L,albTex:"grid",nrm:0,amb:.35}); if(!VP) return;
+      const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight; let best=null, bd=28;
+      const vis=S.filter(k=>V3.dot(g(d.nrm,k,3),V3.sub(eye,g(d.pos,k,3)))>0.15);
+      if(mouse) vis.forEach(k=>{ const [sx,sy]=toScreen(VP,g(d.pos,k,3),W,H), dd=Math.hypot(sx-mouse[0],sy-mouse[1]); if(dd<bd){ bd=dd; best=k; } });
+      if(best!==pick){ pick=best; show(pick); }
+      vis.forEach(k=>{ const p=g(d.pos,k,3), N=g(d.nrm,k,3), T=g(d.tan,k,4), B=V3.cross(N,T).map(v=>v*d.tan[k*4+3]), big=k===pick, s=big?.42:.14;
+        const o=toScreen(VP,p,W,H); x.globalAlpha=big||pick==null?1:.45;
+        [[T,RED],[B,GREEN],[N,BLUE]].forEach(([a,c])=>{ const q=toScreen(VP,[p[0]+a[0]*s,p[1]+a[1]*s,p[2]+a[2]*s],W,H); arrow2d(x,o[0],o[1],q[0],q[1],c,big?4:2,big?13:7); });
+        if(big){ const lab=(a,t,c)=>{ const q=toScreen(VP,[p[0]+a[0]*s*1.18,p[1]+a[1]*s*1.18,p[2]+a[2]*s*1.18],W,H); label(x,t,q[0],q[1]+5,c,18,"center"); }; lab(T,"T",RED); lab(B,"B",GREEN); lab(N,"N",BLUE); }
+      }); x.globalAlpha=1; } }; })();
+
+/* ---------- orthonormal matrix: step through v·M ---------- */
+A.ortho=(()=>{ const svg=$("orSvg"); let step=0, ang=50; const v=[.85,.35];
+  const orS=slider("orA",a=>a+"°",a=>{ ang=a; draw(); });
+  const O=[320,330], S=210, P2=p=>[O[0]+p[0]*S,O[1]-p[1]*S];
+  function draw(){ svg.innerHTML=""; const a=ang*Math.PI/180, X=[Math.cos(a),Math.sin(a)], Yv=[-Math.sin(a),Math.cos(a)];
+    // grid
+    const g=svgEl("g",{},svg); for(let i=-3;i<=3;i++){ svgEl("line",{x1:O[0]+i*S/2,y1:40,x2:O[0]+i*S/2,y2:580,stroke:"#202026"},g); svgEl("line",{x1:20,y1:O[1]+i*S/2,x2:620,y2:O[1]+i*S/2,stroke:"#202026"},g); }
+    // local v before rotation (faint)
+    arrowSvg(svg,...P2([0,0]),...P2(v),"rgba(155,152,143,.45)",3,"6 6"); textSvg(svg,"v (local)",...P2([v[0]+.03,v[1]+.06]),MUTE,16);
+    if(step>=0){ arrowSvg(svg,...P2([0,0]),...P2(X),RED,4); textSvg(svg,"X′",...P2([X[0]*1.12,X[1]*1.12]),RED,20,"middle",600);
+      arrowSvg(svg,...P2([0,0]),...P2(Yv),GREEN,4); textSvg(svg,"Y′",...P2([Yv[0]*1.15,Yv[1]*1.15]),GREEN,20,"middle",600); }
+    const xX=[X[0]*v[0],X[1]*v[0]], tip=[xX[0]+Yv[0]*v[1],xX[1]+Yv[1]*v[1]];
+    if(step>=1) arrowSvg(svg,...P2([0,0]),...P2(xX),RED,6);
+    if(step>=2) arrowSvg(svg,...P2(xX),...P2(tip),GREEN,6);
+    if(step>=3){ arrowSvg(svg,...P2([0,0]),...P2(tip),Y,5); textSvg(svg,"v·M",...P2([tip[0]+.05,tip[1]+.08]),Y,20,"start",600); }
+    svgEl("circle",{cx:O[0],cy:O[1],r:5,fill:INK},svg);
+    const M=[[X[0],X[1],0],[Yv[0],Yv[1],0],[0,0,1]], C=["cR","cG","cB"];
+    $("orMat").innerHTML=M.map((r,i)=>r.map(n=>`<span class="${C[i]}">${f2(n)}</span>`).join("")).join("");
+    $("orRes").textContent=step>=3?`= (${f2(tip[0])}, ${f2(tip[1])}, 0)`:"";
+    $("orSteps").querySelectorAll("div").forEach((e,i)=>{ e.classList.toggle("on",i<=step); e.classList.toggle("cur",i===step); }); }
+  return { enter(dir){ step=dir<0?3:0; orS.set(ang); }, step(){ if(step<3){ step++; draw(); return true; } return false; }, back(){ if(step>0){ step--; draw(); return true; } return false; } }; })();
+
+/* ---------- TBN static diagram ---------- */
+(() => { const svg=$("tbSvg");
+  // a tilted tile in oblique projection
+  const pr=p=>[320+p[0]*190+p[2]*-95,330-p[1]*190+p[2]*55];
+  const T=[1,0,0], B=[0,0,1], N=[0,1,0];
+  const q=[[-1,0,-1],[1,0,-1],[1,0,1],[-1,0,1]].map(p=>pr(p.map(v=>v*.9)));
+  svgEl("polygon",{points:q.map(p=>p.join(",")).join(" "),fill:"rgba(106,184,255,.08)",stroke:"#3a3a44","stroke-width":2},svg);
+  const o=pr([0,0,0]);
+  [[T,RED,"T  (+U)"],[B,GREEN,"B  (+V)"],[N,BLUE,"N"]].forEach(([a,c,t])=>{ const e=pr(a.map(v=>v*1.05)); arrowSvg(svg,...o,...e,c,6); textSvg(svg,t,e[0]+(a===B?-30:12),e[1]+(a===N?-10:a===B?32:8),c,22,"start",600); });
+  const nm=V3.norm([.35,1,.25]), e=pr(nm.map(v=>v*.9)); arrowSvg(svg,...o,...e,Y,4,"7 6"); textSvg(svg,"map normal",e[0]+12,e[1]-6,Y,18);
+  svgEl("circle",{cx:o[0],cy:o[1],r:7,fill:INK},svg);
+  textSvg(svg,"one vertex, its tangent space",30,510,MUTE,16);
+})();
+
+/* ---------- code tips ---------- */
+codeTips($("vsCode"),$("vsTip"),[
+  [1,7,`<span class="k">vertex input</span>The tangent is a 4th attribute. <b>xyz</b> is the tangent direction (+U). <b>w</b> is ±1: it flips B for mirrored UVs.`],
+  [6,6,`<span class="k">Tangent</span>Comes from the mesh. Model importers (e.g. Assimp with <code>aiProcess_CalcTangentSpace</code>) compute it from the UVs.`],
+  [8,14,`<span class="k">output</span>T, B and N go to the fragment shader. The rasterizer blends them across the triangle.`],
+  [18,21,`<span class="k">position</span>Same as before: model → world → clip space. <code>Model</code> and <code>ViewProjection</code> come from a cbuffer at <code>b0, space1</code>.`],
+  [23,24,`<span class="k">rotate to world</span>N and T use the rotation part of the Model matrix (<code>(float3x3)Model</code>). Use the normal matrix if the model is scaled non-uniformly.`],
+  [25,25,`<span class="k">Gram-Schmidt</span>Remove any part of T that points along N, so T and N are exactly <b>perpendicular</b>.`],
+  [28,28,`<span class="k">bitangent</span>The third axis is perpendicular to both. <code>w</code> picks which way it points.`]
+],`<span class="k">vertex shader</span>Rotate <b>N</b> and <b>T</b> into world space, make them perpendicular and compute <b>B</b>. Then pass all three to the fragment shader.`);
+codeTips($("psCode"),$("psTip"),[
+  [1,4,`<span class="k">two texture slots</span>Slot 0 is albedo (<code>t0</code>/<code>s0</code>) and slot 1 is the normal map (<code>t1</code>/<code>s1</code>). Create the normal map texture as <code>R8G8B8A8_UNORM</code>, <b>not</b> <code>_UNORM_SRGB</code>. It holds data, not color.`],
+  [5,8,`<span class="k">light</span>A fragment uniform buffer (<code>b0, space3</code>), pushed with <code>SDL_PushGPUFragmentUniformData</code>.`],
+  [9,14,`<span class="k">input</span>Interpolated T, B and N. After interpolation they are no longer exactly unit length.`],
+  [19,20,`<span class="k">decode</span>Sample the map and turn color (0…1) into a direction (−1…1).`],
+  [22,22,`<span class="k">TBN</span><code>float3x3(a, b, c)</code> puts <b>a, b, c in the rows</b>. Normalize after interpolation.`],
+  [23,23,`<span class="k">tangent → world</span>Rows are T, B, N, so the vector goes on the <b>left</b>: <code>mul(n, TBN)</code> = n.x·T + n.y·B + n.z·N.`],
+  [25,27,`<span class="k">lighting</span>Ordinary diffuse lighting, now with the per-pixel normal <b>N</b>.`]
+],`<span class="k">fragment shader</span>Sample the normal map, decode it, rotate it into world space with TBN, then light with it.`);
+
+/* ---------- two spaces ---------- */
+A.spaces=(()=>{ const svg=$("spSvg"); let mode="world", rot=0, target=0; const th=28*Math.PI/180;
+  const nT=V3.norm([.42,0,.9]);           // map normal (tangent space): x along T, z along N
+  const Lw=V3.norm([-.55,0,.83]);           // light direction in world (x right, z up in this 2D slice)
+  const tip={world:`<span class="k">world space</span>Rotate the <b>normal</b> into world space: <code>N = mul(n, TBN)</code>. The light stays where it is.<br><br>Done per pixel in the fragment shader.`,
+    tangent:`<span class="k">tangent space</span>Rotate the <b>light</b> (and view) into tangent space: <code>L′ = mul(TBN, L)</code>, the transpose. The map normal is used as-is.<br><br>The surface now lies flat, like the texture.`};
+  tabs($("spMode"),k=>{ mode=k; target=k==="world"?0:1; $("spTip").innerHTML=tip[k]; })("world"); $("spTip").innerHTML=tip.world;
+  const O=[350,380], S=230;
+  const R=(v,a)=>[v[0]*Math.cos(a)-v[2]*Math.sin(a),v[0]*Math.sin(a)+v[2]*Math.cos(a)];
+  return { tick(dt){ rot+=(target-rot)*Math.min(1,dt/180); const view=-th*rot;   // rotate the whole picture into tangent space
+    svg.innerHTML=""; const P2=(v,a=0)=>{ const q=R(v,a); return [O[0]+q[0]*S,O[1]-q[1]*S]; };
+    const surf=a=>[[-1.3,0,0],[1.3,0,0]].map(p=>P2([p[0]*Math.cos(th),0,p[0]*Math.sin(th)],a));
+    const [s1,s2]=surf(view); svgEl("line",{x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],stroke:INK,"stroke-width":5,"stroke-linecap":"round"},svg);
+    const T=[Math.cos(th),0,Math.sin(th)], N=[-Math.sin(th),0,Math.cos(th)];
+    const o=P2([0,0,0]); arrowSvg(svg,...o,...P2(T.map(v=>v*.75),view),RED,4); arrowSvg(svg,...o,...P2(N.map(v=>v*.75),view),BLUE,4);
+    const tl=P2(T.map(v=>v*.84),view), nl=P2(N.map(v=>v*.84),view); textSvg(svg,"T",tl[0],tl[1]+6,RED,20,"middle",600); textSvg(svg,"N",nl[0]+14,nl[1]+4,BLUE,20,"middle",600);
+    const nW=[T[0]*nT[0]+N[0]*nT[2],0,T[2]*nT[0]+N[2]*nT[2]];
+    const ne=P2(nW.map(v=>v*.95),view); arrowSvg(svg,...o,...ne,Y,5); textSvg(svg,"n",ne[0]+10,ne[1]-6,Y,22,"start",600);
+    const le=P2(Lw.map(v=>v*.95),view); arrowSvg(svg,...o,...le,AMBER,5,"9 7"); const lm=P2(Lw.map(v=>v*.6),view); textSvg(svg,"L",lm[0]-16,lm[1],AMBER,22,"end",600);
+    svgEl("circle",{cx:le[0]+(le[0]-o[0])*.18,cy:le[1]+(le[1]-o[1])*.18,r:14,fill:Y,opacity:.9},svg);
+    svgEl("circle",{cx:o[0],cy:o[1],r:6,fill:INK},svg);
+    $("spCap").textContent=rot<.5?"world space: the surface is tilted":"tangent space: T along x, N along z";
+    const LT=[V3.dot(Lw,T),0,V3.dot(Lw,N)], d=V3.dot(nW,Lw);
+    $("spRead").innerHTML=mode==="world"?`<span class="k">world space</span>N = (${f2(nW[0])}, ${f2(nW[2])}) · L = (${f2(Lw[0])}, ${f2(Lw[2])})<br>dot(N, L) = <b>${d.toFixed(2)}</b>`
+      :`<span class="k">tangent space</span>n = (${f2(nT[0])}, ${f2(nT[2])}) · L′ = (${f2(LT[0])}, ${f2(LT[2])})<br>dot(n, L′) = <b>${V3.dot(nT,LT).toFixed(2)}</b>`; } }; })();
+
+/* ---------- bugs ---------- */
+A.bugs=(()=>{ const cv=$("bgCv"), st=orbit(cv,{yaw:0,pitch:-.2}); let bug=0, show=0, t=0;
+  const TIP=[`<span class="k">correct</span>Map decoded with <code>* 2 − 1</code>, rotated with TBN, stored in a <code>UNORM</code> texture. Bumps are lit from the side the light is on.`,
+    `<span class="k">Y+ map, green flipped</span>Normal maps come in two conventions. <b>Y−</b> (DirectX-style) matches SDL3 GPU’s top-left UVs. A <b>Y+</b> (OpenGL-style) map makes bumps look lit from <b>above when the light is below</b>, like dents. Fix: <code>n.y = -n.y</code>, or invert green in an image editor.`,
+    `<span class="k">loaded as sRGB</span>An <code>_UNORM_SRGB</code> format makes the GPU “gamma-decode” the texel, so 0.5 turns into about 0.22. Every normal tilts the wrong way and the surface goes dark. Normal maps are <b>data</b>, so use <code>R8G8B8A8_UNORM</code>.`,
+    `<span class="k">forgot * 2 − 1</span>Colors are 0…1, so x and y can never be negative. Every normal leans toward +x +y, and the lighting looks smeared in one direction.`,
+    `<span class="k">no TBN</span>The map normal is used as a world normal. It only looks right where the surface faces world +Z.`];
+  tabs($("bgMode"),k=>{ bug=+k; $("bgTip").innerHTML=TIP[bug]; })("0"); $("bgTip").innerHTML=TIP[0];
+  toggle($("bgShow"),v=>show=+v);
+  return { tick(dt){ t+=dt/1000; const eye=eyeOf(st,3.1), L=[Math.cos(t*.6)*2.4,Math.sin(t*.9)*1.6,Math.sin(t*.6)*2.4+.4];
+    const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],bug,show}); lightDot(cv,VP,L);
+    $("bgCap").textContent=["correct","Y+ map","sRGB format","no decode","no TBN"][bug]; } }; })();
+
+/* ---------- navigation ---------- */
+const countEl=$("count"), prog=$("progress");
+/* ---------- live class sync: instructor drives, students follow ---------- */
+// a backend "adapter" plugs in here: claude artifacts (below) or firebase (live.js on the web site)
+// adapter = { role:"presenter"|"student", get(), set(state), subscribe(cb) -> unsub, followers?(cb) -> unsub }
+const Live={role:"solo",ad:null,state:null,locked:false,writing:false,want:null,written:null,room:false,followers:0,unsub:[]};
+const liveBar=document.getElementById("livebar"), toastEl=document.getElementById("toast");
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>toastEl.classList.remove("on"),2200); }
+function liveCap(){ return Live.role==="student"&&Live.state&&Live.state.locked ? Live.state.slide : Infinity; }
+function clampSlide(v){ v=Math.floor(+v); return Number.isFinite(v)?Math.max(0,Math.min(slides.length-1,v)):0; }
+function renderLive(){
+  if(Live.role==="presenter"){
+    liveBar.innerHTML=`<button class="lv ${Live.locked?"on":""}" id="lvBtn" title="Lock students to your slide"><span class="dot"></span>${Live.locked?"Class follows you":"Class can roam"}</button>`+(Live.room?`<span class="lvc">${Live.followers} student${Live.followers===1?"":"s"} watching</span>`:"");
+    document.getElementById("lvBtn").onclick=toggleLock;
+  } else if(Live.role==="student"&&Live.state&&Live.state.locked){
+    liveBar.innerHTML=`<span class="lv on"><span class="dot"></span>Following your instructor</span>`;
+  } else liveBar.innerHTML="";
+  document.getElementById("next").disabled = cur>=liveCap();
+}
+async function pushLive(){
+  if(Live.role!=="presenter"||!Live.ad) return;
+  Live.want={slide:cur,locked:Live.locked};
+  if(Live.writing) return; Live.writing=true;
+  try{ while(Live.want && JSON.stringify(Live.want)!==JSON.stringify(Live.written)){ const w=Live.want; await Live.ad.set(w); Live.written=w; } }
+  catch(e){ console.warn("live sync write failed",e); toast("Couldn’t sync the class. Check your connection."); }
+  Live.writing=false;
+}
+function toggleLock(){ Live.locked=!Live.locked; renderLive(); pushLive(); toast(Live.locked?"Students now follow your slides":"Students can move freely"); }
+function onLiveState(d){
+  const prev=Live.state;
+  Live.state=d?{slide:clampSlide(d.slide),locked:d.locked===true}:null;
+  const s=Live.state;
+  if(s&&s.locked&&(!prev||!prev.locked||prev.slide!==s.slide||cur>s.slide)) go(s.slide);
+  renderLive();
+}
+async function attachLive(ad){
+  Live.unsub.forEach(u=>{ try{ u&&u(); }catch(e){} }); Live.unsub=[];
+  Live.ad=ad; Live.role=ad?ad.role:"solo"; Live.state=null; Live.written=null; Live.room=false;
+  if(!ad){ renderLive(); return; }
+  if(ad.role==="presenter"){
+    try{ const d=await ad.get(); if(d){ Live.locked=d.locked===true; Live.written={slide:clampSlide(d.slide),locked:Live.locked}; if(Live.locked) go(clampSlide(d.slide)); } else Live.locked=false; }catch(e){}
+  } else Live.unsub.push(ad.subscribe(onLiveState));
+  if(ad.followers){ try{ Live.unsub.push(ad.followers(n=>{ Live.room=true; Live.followers=n; renderLive(); })); }catch(e){} }
+  renderLive();
+}
+// backend 1: claude artifact capabilities (db + room + user)
+async function claudeAdapter(){
+  const C=window.claude; if(!C||typeof C.use!=="function") return;
+  let user=null, db=null, room=null;
+  try{ [user,db,room]=await Promise.all([C.use("user"),C.use("db"),C.use("room")]); }catch(e){ return; }
+  if(!db) return;
+  let pres=false; try{ pres=!!user&&(!!(await user.isOwner())||!!(await user.canEdit())); }catch(e){}
+  const ref=db.doc("live/state");
+  attachLive({
+    role:pres?"presenter":"student",
+    get:async()=>{ const s=await ref.get(); return s.exists?s.data():null; },
+    set:w=>ref.set(w),
+    subscribe:cb=>ref.onSnapshot(s=>cb(s.exists?s.data():null),e=>console.warn("live sync stopped",e)),
+    followers:room?cb=>{ if(!pres) room.presence({following:true}).catch(()=>{}); return room.onPeers(ch=>cb(ch.peers.filter(p=>!p.isMe&&p.presence&&p.presence.following).length)); }:null,
+  });
+}
+// backend 2 (web site): live.js calls window.Deck.attachLive(...)
+window.Deck={attachLive,toast,current:()=>cur,count:slides.length};
+
+
+function go(i,fromHash){
+  i=Math.max(0,Math.min(slides.length-1,i));
+  const capS=liveCap(); if(i>capS){ if(cur>=capS) toast("Waiting for your instructor…"); i=capS; }
+  if(i===cur) return;
+  const dir=i>cur?1:-1;
+  if(cur>=0) slides[cur].classList.remove("active");
+  cur=i; const s=slides[cur]; s.classList.add("active");
+  s.querySelectorAll("canvas").forEach(fitCanvas);
+  const a=A[s.dataset.id]; if(a&&a.enter) a.enter(dir);
+  countEl.textContent=`${cur+1} / ${slides.length}`; prog.style.width=((cur+1)/slides.length*100)+"%";
+  if(!fromHash){ try{ history.replaceState(null,"","#s"+(cur+1)); }catch(e){} }
+  if(Live.role==="presenter"&&Live.locked) pushLive();
+  if(Live.role!=="solo") renderLive();
+}
+function fromHash(){ const m=/^#s(\d+)$/.exec(location.hash); go(m?+m[1]-1:0,true); }
+addEventListener("hashchange",fromHash);
+function advance(){ const a=A[slides[cur].dataset.id]; if(a&&a.step&&a.step()) return; go(cur+1); }
+function retreat(){ const a=A[slides[cur].dataset.id]; if(a&&a.back&&a.back()) return; go(cur-1); }
+$("prev").onclick=retreat; $("next").onclick=advance;
+function toggleFS(){ try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){} }
+$("fs").onclick=toggleFS;
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;
+  const k=e.key;
+  if(["ArrowRight","PageDown"].includes(k)||(k===" "&&e.target.tagName!=="BUTTON")){ advance(); e.preventDefault(); }
+  else if(["ArrowLeft","PageUp"].includes(k)){ retreat(); e.preventDefault(); }
+  else if(k==="Home") go(0); else if(k==="End") go(slides.length-1);
+  else if(k==="f"||k==="F") toggleFS();
+});
+let sx=null; stage.addEventListener("touchstart",e=>{ if(e.target.closest("input,button,svg,canvas,table,.grabbable,pre")) return; sx=e.touches[0].clientX; },{passive:true});
+stage.addEventListener("touchend",e=>{ if(sx===null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>60) (dx<0?advance:retreat)(); sx=null; });
+addEventListener("resize",fitStage);
+fitStage(); fromHash(); claudeAdapter();
+let last=performance.now();
+function loop(now){ const dt=Math.min(100,now-last); last=now; const s=slides[cur], a=s&&A[s.dataset.id]; if(a&&a.tick){ try{ a.tick(dt,now); }catch(err){ console.error(err); } } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+})();
+</script>
+<script type="module" src="../live.js"></script>
+</body>
+</html>

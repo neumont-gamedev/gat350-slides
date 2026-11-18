@@ -21,10 +21,15 @@ def shell_deck(slug):
 def texture_mapping():
     return shell_deck("gat350-texture-mapping")
 
+def normal_mapping():
+    return shell_deck("gat350-normal-mapping")
+
 DECKS = [
     # slug, builder, number, title, blurb
     ("gat350-texture-mapping", texture_mapping, "01", "Texture Mapping",
      "UV coordinates, SDL3 GPU textures and samplers, filtering, mipmaps, material maps, cubemaps, skyboxes, reflection and refraction."),
+    ("gat350-normal-mapping", normal_mapping, "02", "Normal Mapping",
+     "Normal maps, decoding color to direction, tangent space, the TBN matrix and the HLSL to light with per-pixel normals."),
 ]
 
 def stamp():

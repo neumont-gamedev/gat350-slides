@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAT350 · Normal Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121214; --panel:#1c1c20; --panel2:#24242a; --line:#2e2e35;
+    --ink:#f3f1ea; --mute:#9b988f; --y:#ffc20e; --amber:#ff8a1f; --red:#ff5a4e; --green:#5fd68a; --blue:#6ab8ff; --purple:#b18cff;
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#000;overflow:hidden;color:var(--ink);font-family:var(--sans)}
+  #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;background:var(--bg);overflow:hidden}
+
+  .slide{position:absolute;inset:0;padding:100px 110px 90px;opacity:0;visibility:hidden;transform:scale(1.015);
+    transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s .6s}
+  .slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1),visibility 0s}
+  .rise{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .rise{opacity:1;transform:none;transition-delay:calc(var(--i,0) * 110ms + 150ms)}
+
+  .bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(18,18,20,.5) 0%,rgba(18,18,20,.88) 60%,var(--bg) 100%);pointer-events:none}
+  .content{position:relative;z-index:1;height:100%}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+
+  .eyebrow{font-family:var(--mono);font-size:20px;letter-spacing:.18em;text-transform:uppercase;color:var(--y)}
+  h1{font-size:118px;line-height:.98;font-weight:700;letter-spacing:-.03em;margin:22px 0 34px}
+  h1 span,h2 span.y{color:var(--y)}
+  h2{font-size:56px;font-weight:700;letter-spacing:-.02em;line-height:1.06}
+  h2 .n{font-family:var(--mono);font-size:21px;color:var(--y);font-weight:600;display:block;letter-spacing:.12em;margin-bottom:12px}
+  h3{font-size:26px}
+  .lede{font-size:31px;line-height:1.4;color:#d6d3cb;max-width:1100px}
+  p{font-size:25px;line-height:1.45;color:#d6d3cb}
+  b,strong{color:var(--ink)}
+  .y{color:var(--y)} .mono{font-family:var(--mono)} .muted{color:var(--mute)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px}
+  .pad{padding:22px 24px}
+
+  .bul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .bul li{font-size:24px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:26px}
+  .bul li::before{content:"";position:absolute;left:0;top:.5em;width:11px;height:11px;background:var(--y);border-radius:3px}
+  .num{list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:14px}
+  .num li{counter-increment:n;font-size:23px;line-height:1.4;color:#d6d3cb;position:relative;padding-left:44px;transition:color .3s,opacity .3s}
+  .num li::before{content:counter(n);position:absolute;left:0;top:.18em;font-family:var(--mono);font-size:16px;line-height:1.4;color:var(--bg);background:var(--y);border-radius:6px;padding:0 9px}
+  .num.steps li{opacity:.35}
+  .num.steps li.on{opacity:1;color:var(--ink)}
+  .num.steps li.done{opacity:.75}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:64px;height:100%;align-items:center}
+  .two.wide-r{grid-template-columns:.85fr 1.15fr}
+  .stack{display:flex;flex-direction:column;gap:26px}
+  .stage-box{position:relative;height:620px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  .stage-box canvas,.stage-box svg{position:absolute;inset:0;width:100%;height:100%}
+  .cap{position:absolute;left:18px;bottom:14px;font-family:var(--mono);font-size:15px;color:var(--mute);background:rgba(13,13,15,.8);padding:6px 10px;border-radius:8px;z-index:2;pointer-events:none}
+  .cap.top{top:14px;bottom:auto}
+  .cap.r{left:auto;right:18px}
+  .callout{border-left:4px solid var(--y);padding:14px 20px;background:rgba(255,194,14,.07);border-radius:0 12px 12px 0;font-size:22px;line-height:1.45;color:#e5e2da}
+  .callout.red{border-color:var(--red);background:rgba(255,90,78,.07)}
+  .keyIdea{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .keyIdea.on{opacity:1;transform:none}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:500 19px var(--sans);padding:10px 20px;border-radius:10px;cursor:pointer}
+  .btn:hover{border-color:var(--y);color:var(--y)}
+  .btn.on{background:var(--y);color:var(--bg);border-color:var(--y)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}
+  .btn.sm{font-size:16px;padding:8px 14px}
+  .btn.mono{font-family:var(--mono);font-size:15px}
+  .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tag{display:inline-block;font-family:var(--mono);font-size:15px;padding:4px 10px;border-radius:6px;font-weight:600;letter-spacing:.04em}
+  .t-red{background:rgba(255,90,78,.15);color:var(--red)} .t-green{background:rgba(95,214,138,.15);color:var(--green)} .t-blue{background:rgba(106,184,255,.15);color:var(--blue)} .t-y{background:rgba(255,194,14,.15);color:var(--y)}
+  .hint{font-family:var(--mono);font-size:15px;color:var(--mute)}
+  .hint::before{content:"› ";color:var(--y)}
+  code,.code{font-family:var(--mono);color:var(--y);font-size:.9em}
+  .k{font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+
+  /* chrome */
+  #chrome{position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:18px;padding:0 32px;z-index:10;font-family:var(--mono);font-size:16px;color:var(--mute);pointer-events:none}
+  #chrome button{pointer-events:auto}
+  #chrome .sp{flex:1}
+  #brand{position:absolute;left:32px;top:28px;z-index:10;font-family:var(--mono);font-size:15px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+  #brand b{color:var(--y);font-weight:600}
+  #logo{position:absolute;right:32px;top:22px;height:44px;z-index:10;pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+  #progress{position:absolute;left:0;bottom:0;height:4px;background:var(--y);transition:width .5s cubic-bezier(.2,.7,.2,1);z-index:11}
+  .nbtn{background:transparent;border:1px solid var(--line);color:var(--ink);font:inherit;width:40px;height:34px;border-radius:8px;cursor:pointer}
+  .nbtn:hover{border-color:var(--y);color:var(--y)}
+
+  /* live class sync */
+  #livewrap{position:absolute;left:32px;bottom:11px;z-index:12;display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:15px}
+  #livebar,#liveauth{display:flex;gap:12px;align-items:center}
+  #liveauth:empty,#livebar:empty{display:none}
+  .lv{display:inline-flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:6px 14px;font:inherit}
+  button.lv{cursor:pointer} button.lv:hover{border-color:var(--y)}
+  .lv.on{border-color:var(--y);color:var(--y)}
+  .lv .dot{width:9px;height:9px;border-radius:50%;background:#55534d}
+  .lv.on .dot{background:var(--red);box-shadow:0 0 0 0 rgba(255,90,78,.6);animation:lvp 1.6s infinite}
+  @keyframes lvp{70%{box-shadow:0 0 0 8px rgba(255,90,78,0)}100%{box-shadow:0 0 0 0 rgba(255,90,78,0)}}
+  .lvc{color:var(--mute)}
+  .nbtn:disabled{opacity:.25;cursor:not-allowed;border-color:var(--line);color:var(--ink)}
+  #toast{position:absolute;left:50%;bottom:76px;z-index:20;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--panel2);border:1px solid var(--y);color:var(--ink);font-size:20px;padding:12px 22px;border-radius:12px;transition:opacity .3s,transform .3s;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  /* ---------- normal mapping deck ---------- */
+  pre.src{font-family:var(--mono);font-size:17px;line-height:1.5;color:#d6d3cb;background:#0d0d0f;border:1px solid var(--line);border-radius:14px;padding:16px 0;white-space:pre;overflow:hidden;position:relative}
+  pre.src .ln{display:block;padding:0 20px;transition:background .25s,opacity .3s;border-left:3px solid transparent}
+  pre.src.dim .ln{opacity:.38}
+  pre.src .ln.hl{background:rgba(255,194,14,.10);border-left-color:var(--y);opacity:1}
+  pre.src .ln.hov{cursor:default}
+  pre.src .ln.hov:hover{background:rgba(255,255,255,.05)}
+  pre.src .kw{color:var(--blue)} pre.src .ty{color:var(--purple)} pre.src .fn{color:var(--green)} pre.src .s{color:var(--amber)} pre.src .c{color:#6f6c66;font-style:italic} pre.src .nu{color:var(--amber)} pre.src .k2{color:var(--y)} pre.src .sem{color:var(--red)}
+  pre.src.sm{font-size:15px} pre.src.xs{font-size:14px;line-height:1.32}
+  .codeHead{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:14px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .codeHead .tag{text-transform:none}
+  .tip{min-height:120px;padding:20px 24px;font-size:21px;line-height:1.45;color:#d6d3cb}
+  .tip b{color:var(--y)}
+  .tip .k{display:block;margin-bottom:6px}
+  figure.fig{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0d0d0f}
+  figure.fig img,figure.fig canvas{display:block;width:100%;height:100%;object-fit:contain}
+  figure.fig figcaption{position:absolute;left:10px;bottom:10px;font-family:var(--mono);font-size:14px;padding:5px 10px;border-radius:8px;background:rgba(13,13,15,.85);color:var(--mute)}
+  .ctl{display:grid;grid-template-columns:110px 1fr 70px;gap:14px;align-items:center;font-family:var(--mono);font-size:17px;color:var(--mute)}
+  .ctl output{color:var(--y);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:4px;background:#2a2a30;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--y);cursor:pointer;box-shadow:0 0 12px rgba(255,194,14,.5)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--y);cursor:pointer}
+  .readout{font-family:var(--mono);font-size:19px;line-height:1.65;color:#d6d3cb;padding:16px 20px}
+  .readout b{color:var(--y);font-weight:600}
+  .readout .k{display:block;margin-bottom:4px}
+  .grabbable{cursor:grab} .grabbable:active{cursor:grabbing}
+  .cR{color:var(--red)} .cG{color:var(--green)} .cB{color:var(--blue)}
+  .swatch{width:100%;height:90px;border-radius:12px;border:1px solid var(--line)}
+  .fxl{font-family:var(--mono);font-size:21px;line-height:1.75;color:#d6d3cb}
+  .fxl div{opacity:.3;transition:opacity .4s,color .4s}
+  .fxl div.on{opacity:1}
+  .fxl div.cur{color:var(--y)}
+  .mat{display:inline-grid;grid-template-columns:repeat(3,64px);gap:4px 6px;font-family:var(--mono);font-size:19px;padding:8px 14px;border-left:3px solid var(--mute);border-right:3px solid var(--mute);border-radius:8px;vertical-align:middle}
+  .mat span{text-align:right;transition:color .3s,opacity .3s}
+  .lay{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .lay figure{height:170px;cursor:pointer;transition:border-color .25s,opacity .25s}
+  .lay figure.off{opacity:.35}
+  .lay figure.on{border-color:var(--y)}
+  .bugTxt{min-height:190px}
+  .chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:1250px}
+  .chips .tag{font-size:20px;padding:8px 16px}
+  .mrow{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:24px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="logo" src="{{LOGO}}" alt="Neumont University">
+  <div id="brand"><b>GAT350</b> &nbsp;·&nbsp; Normal Mapping</div>
+
+  <!-- 1 title -->
+  <section class="slide" data-id="title">
+    <canvas class="bg" id="tiBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center">
+      <div class="eyebrow rise" style="--i:0">GAT350 · Computer Graphics</div>
+      <h1 class="rise" style="--i:1">Normal <span>Mapping</span></h1>
+      <p class="lede rise" style="--i:2">Lighting bumps and dents that aren’t in the geometry: normal maps, tangent space and the TBN matrix.</p>
+    </div>
+  </section>
+
+  <!-- 2 what -->
+  <section class="slide" data-id="what">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr">
+      <div class="stack">
+        <h2 class="rise" style="--i:0"><span class="n">THE IDEA</span>What is normal mapping?</h2>
+        <p class="rise" style="--i:1">Lighting depends on the surface <b class="y">normal</b>. A normal map gives every pixel its own normal, so flat triangles light up as if they had bumps.</p>
+        <p class="rise" style="--i:2">The geometry doesn’t change. The demo on the right is <b>two triangles</b>.</p>
+        <div class="acts rise" style="--i:3"><button class="btn on" id="whNrm">normal map: on</button><button class="btn" id="whAlb">albedo: on</button></div>
+        <div class="hint rise" style="--i:4">move the mouse over the picture to move the light</div>
+        <div class="callout rise" style="--i:5">Also called <b>Dot3 bump mapping</b>. It is a cheap way to add detail to a low-poly model.</div>
+      </div>
+      <div class="stage-box rise" style="--i:2;height:640px"><canvas id="whCv"></canvas><div class="cap" id="whCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 3 normal map image -->
+  <section class="slide" data-id="map">
+    <h2 class="rise" style="--i:0"><span class="n">NORMAL MAP</span>An image full of directions</h2>
+    <div style="display:grid;grid-template-columns:600px 1fr;gap:40px;margin-top:24px">
+      <div class="stage-box rise" style="--i:1;height:600px"><canvas id="mpCv" style="cursor:crosshair"></canvas><div class="cap">stones · normal map</div></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:23px">Each texel stores a direction instead of a color: <b class="cR">R → x</b>, <b class="cG">G → y</b>, <b class="cB">B → z</b>.</p>
+        <div class="card" style="display:grid;grid-template-columns:1fr 210px;gap:10px;align-items:center">
+          <div class="readout" id="mpRead"></div>
+          <canvas id="mpArrow" style="width:200px;height:200px"></canvas>
+        </div>
+        <div class="swatch" id="mpSw"></div>
+        <div class="hint">hover the normal map</div>
+        <p class="muted" style="font-size:19px">The arrow is the normal seen from above. x points right, y points <b>down the image</b> (the same way +V goes), z points out of the surface.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 decode -->
+  <section class="slide" data-id="decode">
+    <h2 class="rise" style="--i:0"><span class="n">COLOR TO DIRECTION</span>0 … 1 becomes −1 … 1</h2>
+    <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:44px;margin-top:26px">
+      <div class="stack rise" style="--i:1;gap:18px">
+        <div class="ctl"><span class="cR">red</span><input type="range" id="dcR" min="0" max="255" value="128"><output id="dcRO"></output></div>
+        <div class="ctl"><span class="cG">green</span><input type="range" id="dcG" min="0" max="255" value="128"><output id="dcGO"></output></div>
+        <div class="ctl"><span class="cB">blue</span><input type="range" id="dcB" min="0" max="255" value="255"><output id="dcBO"></output></div>
+        <div class="acts" id="dcPre"><button class="btn sm" data-k="flat">flat</button><button class="btn sm" data-k="right">tilt right</button><button class="btn sm" data-k="down">tilt down</button><button class="btn sm" data-k="bad">not unit length</button></div>
+        <div class="stage-box" style="height:300px"><canvas id="dcLine"></canvas></div>
+      </div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <div class="card" style="display:grid;grid-template-columns:1fr 200px;align-items:center"><div class="readout" id="dcRead"></div><canvas id="dcArrow" style="width:190px;height:190px"></canvas></div>
+        <div class="card pad mono" style="font-size:22px;line-height:1.7">normal = color <span class="y">* 2.0 − 1.0</span><br><span class="muted">color&nbsp; = normal * 0.5 + 0.5</span></div>
+        <div class="callout">A flat surface’s normal is <b>(0, 0, 1)</b>. Encoded, that is <b>(0.5, 0.5, 1.0)</b>, a light blue. That is why normal maps look mostly <span class="cB">blue</span>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 per vertex vs per pixel -->
+  <section class="slide" data-id="pernormal">
+    <h2 class="rise" style="--i:0"><span class="n">NORMALS</span>Vertex normals vs. map normals</h2>
+    <div class="stage-box rise" style="--i:1;height:530px;margin-top:22px"><canvas id="pnCv"></canvas></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px" class="rise">
+      <div class="ctl" style="grid-template-columns:150px 1fr 80px"><span>light angle</span><input type="range" id="pnL" min="-75" max="75" value="-40"><output id="pnLO"></output></div>
+      <p style="font-size:21px">A flat triangle has <b>one</b> normal, so its lighting is flat. The map gives <b class="y">every pixel</b> a normal tilted like the real bumpy surface (dashed).</p>
+    </div>
+  </section>
+
+  <!-- 6 layers -->
+  <section class="slide" data-id="layers">
+    <div class="two" style="grid-template-columns:.95fr 1.05fr">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">MATERIAL</span>Albedo + normal map</h2>
+        <div class="lay rise" style="--i:1" id="lyFigs">
+          <figure class="fig on" data-k="alb"><img src="{{IMG:stones-albedo.jpg}}" alt="albedo"><figcaption>albedo</figcaption></figure>
+          <figure class="fig on" data-k="nrm"><canvas id="lyNrm"></canvas><figcaption>normal map</figcaption></figure>
+          <figure class="fig" data-k="show"><canvas id="lyShow"></canvas><figcaption>N as color</figcaption></figure>
+        </div>
+        <div class="hint rise" style="--i:2">click a map to switch it on or off</div>
+        <p class="rise" style="--i:3;font-size:22px">The <b class="y">albedo</b> is the base color of the surface. The <b class="y">normal map</b> holds the normal vectors that lighting uses.</p>
+        <p class="rise muted" style="--i:4;font-size:19px">“N as color” shows the final normals as RGB. That view is a good way to debug.</p>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:660px"><canvas id="lyCv"></canvas><div class="cap" id="lyCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 7 baking -->
+  <section class="slide" data-id="bake">
+    <h2 class="rise" style="--i:0"><span class="n">WHERE THEY COME FROM</span>Baking detail into a map</h2>
+    <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:28px;margin-top:26px;height:430px">
+      <figure class="fig rise" style="--i:1;background:#fff"><img src="{{IMG:high-low.png}}" alt="4M triangle mesh, 500 triangle mesh, 500 triangles with normal map"></figure>
+      <figure class="fig rise" style="--i:2"><img src="{{IMG:sculpt-bake.jpg}}" alt="a sculpted character and its baked normal map"><figcaption>a sculpt and its baked map (left)</figcaption></figure>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px">
+      <p class="rise" style="--i:3;font-size:22px"><b class="y">From a high-poly model:</b> artists sculpt millions of triangles (ZBrush, Blender), then <b>bake</b> the detail into a normal map for a low-poly model with the same UVs.</p>
+      <p class="rise" style="--i:4;font-size:22px"><b class="y">From a height map:</b> a grayscale bump image becomes normals by measuring its slope in x and y. Many tools (Substance, GIMP, Photoshop) can do this.</p>
+    </div>
+  </section>
+
+  <!-- 8 why tangent space -->
+  <section class="slide" data-id="why">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">TANGENT SPACE</span>Map normals are relative</h2>
+        <p class="rise" style="--i:1;font-size:23px">In a normal map, <b class="cB">+z</b> means “straight out of <b>this</b> surface”, not “toward world +Z”. The same map has to work on every face of the model.</p>
+        <div class="acts rise" style="--i:2" id="wyMode"><button class="btn" data-k="raw">use map normal as-is</button><button class="btn" data-k="tbn">rotate it with TBN</button></div>
+        <div class="acts rise" style="--i:2" id="wyMesh"><button class="btn sm" data-k="wall">curved wall</button><button class="btn sm" data-k="sphere">sphere</button><button class="btn sm" id="wyShow">N as color</button></div>
+        <div class="card tip rise" style="--i:3;min-height:150px" id="wyTip"></div>
+        <div class="hint rise" style="--i:4">drag to rotate the model</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:660px"><canvas id="wyCv"></canvas><div class="cap" id="wyCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 9 frame -->
+  <section class="slide" data-id="frame">
+    <div class="two" style="grid-template-columns:.85fr 1.15fr">
+      <div class="stack" style="gap:20px">
+        <h2 class="rise" style="--i:0"><span class="n">TANGENT SPACE</span>Tangent, bitangent, normal</h2>
+        <p class="rise" style="--i:1;font-size:22px">Every vertex gets its own small set of axes, lined up with the texture:</p>
+        <ul class="bul rise" style="--i:2">
+          <li><b class="cR">T</b>angent points along <b class="cR">+U</b> (red in the texture)</li>
+          <li><b class="cG">B</b>itangent points along <b class="cG">+V</b> (green in the texture)</li>
+          <li><b class="cB">N</b>ormal points out of the surface</li>
+        </ul>
+        <div class="card readout rise" style="--i:3" id="frRead"></div>
+        <p class="rise muted" style="--i:4;font-size:18px">The mesh file gives you N and T. B can be computed: <code>B = cross(N, T) * w</code>.</p>
+        <div class="hint rise" style="--i:4">hover a vertex · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:680px"><canvas id="frCv"></canvas><div class="cap">texture: red = U, green = V</div></div>
+    </div>
+  </section>
+
+  <!-- 10 orthonormal -->
+  <section class="slide" data-id="ortho">
+    <h2 class="rise" style="--i:0"><span class="n">MATH</span>An orthonormal matrix rotates</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:22px">
+      <div class="stage-box rise" style="--i:1;height:600px"><svg id="orSvg" viewBox="0 0 640 600"></svg><div class="cap">2D slice: z = 0</div></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <p style="font-size:21px"><b class="y">Orthonormal:</b> the three rows are unit length (length 1) and perpendicular to each other. Each row is one of the object’s local axes.</p>
+        <div class="mrow"><span>v ·</span><div class="mat" id="orMat"></div><span id="orRes" class="y"></span></div>
+        <div class="fxl" id="orSteps">
+          <div>rows = rotated axes <span class="cR">X′</span> <span class="cG">Y′</span> <span class="cB">Z′</span></div>
+          <div>v·M = <span class="cR">x·X′</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <span class="cG">y·Y′</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <span class="cB">z·Z′</span> = v, rotated</div>
+        </div>
+        <div class="ctl" style="grid-template-columns:110px 1fr 70px"><span>rotate</span><input type="range" id="orA" min="-180" max="180" value="50"><output id="orAO"></output></div>
+        <div class="hint">→ steps through the multiply</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 TBN -->
+  <section class="slide" data-id="tbn">
+    <h2 class="rise" style="--i:0"><span class="n">TBN MATRIX</span>Three axes in one 3×3 matrix</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:30px;align-items:center">
+      <div class="stage-box rise" style="--i:1;height:540px"><svg id="tbSvg" viewBox="0 0 640 540"></svg></div>
+      <div class="stack rise" style="--i:2;gap:22px">
+        <div class="mrow"><span>TBN =</span><div class="mat" style="grid-template-columns:repeat(3,70px);font-size:22px">
+          <span class="cR">T.x</span><span class="cR">T.y</span><span class="cR">T.z</span>
+          <span class="cG">B.x</span><span class="cG">B.y</span><span class="cG">B.z</span>
+          <span class="cB">N.x</span><span class="cB">N.y</span><span class="cB">N.z</span></div></div>
+        <ul class="bul">
+          <li>Built from three <b>orthonormal</b> vectors, so it is a pure rotation.</li>
+          <li>Takes a normal from <b class="y">tangent space</b> (the map) to <b class="y">world space</b>.</li>
+          <li>Its inverse is its <b class="y">transpose</b>, which is cheap.</li>
+        </ul>
+        <div class="card pad mono" style="font-size:21px;line-height:1.7">mul(n, TBN) = n.x·<span class="cR">T</span> + n.y·<span class="cG">B</span> + n.z·<span class="cB">N</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 vertex shader -->
+  <section class="slide" data-id="vshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Building the TBN</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap.vert.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hVert" id="vsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="vsTip" style="min-height:250px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+        <div class="callout" style="font-size:18px">The tangent comes from the mesh, so add a 4th vertex attribute: <code>SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4</code> at location 3.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 two spaces -->
+  <section class="slide" data-id="spaces">
+    <h2 class="rise" style="--i:0"><span class="n">NORMAL MAP TRANSFORM</span>Two ways to light it</h2>
+    <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:40px;margin-top:22px">
+      <div class="stage-box rise" style="--i:1;height:600px"><svg id="spSvg" viewBox="0 0 700 600"></svg><div class="cap" id="spCap"></div></div>
+      <div class="stack rise" style="--i:2;gap:18px">
+        <div class="acts" id="spMode"><button class="btn" data-k="world">world space</button><button class="btn" data-k="tangent">tangent space</button></div>
+        <div class="card tip" id="spTip" style="min-height:250px"></div>
+        <div class="card readout" id="spRead"></div>
+        <p class="muted" style="font-size:18px">Both give the same answer. Tangent space moves the work to the vertex shader: transform L and V once per vertex instead of N once per pixel.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 pixel shader -->
+  <section class="slide" data-id="pshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · FRAGMENT SHADER</span>Sample, decode, rotate, light</h2>
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap.frag.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hFrag" id="psCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="psTip" style="min-height:260px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 bugs -->
+  <section class="slide" data-id="bugs">
+    <div class="two" style="grid-template-columns:.9fr 1.1fr">
+      <div class="stack" style="gap:18px">
+        <h2 class="rise" style="--i:0"><span class="n">DEBUGGING</span>Common mistakes</h2>
+        <div class="acts rise" style="--i:1" id="bgMode">
+          <button class="btn sm" data-k="0">correct</button>
+          <button class="btn sm" data-k="1">Y+ map (green flipped)</button>
+          <button class="btn sm" data-k="2">loaded as sRGB</button>
+          <button class="btn sm" data-k="3">forgot * 2 − 1</button>
+          <button class="btn sm" data-k="4">no TBN</button>
+        </div>
+        <div class="acts rise" style="--i:1"><button class="btn sm" id="bgShow">N as color</button></div>
+        <div class="card tip bugTxt rise" style="--i:2" id="bgTip"></div>
+        <div class="hint rise" style="--i:3">pick a mistake · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2;height:660px"><canvas id="bgCv"></canvas><div class="cap" id="bgCap"></div></div>
+    </div>
+  </section>
+
+  <!-- 16 recap -->
+  <section class="slide" data-id="recap">
+    <canvas class="bg" id="rcBg"></canvas>
+    <div class="vignette"></div>
+    <div class="content center" style="gap:30px">
+      <div class="eyebrow rise" style="--i:0">Recap</div>
+      <h2 class="rise" style="--i:1;font-size:80px">Bumps from <span class="y">lighting</span>, not triangles.</h2>
+      <div class="chips rise" style="--i:2" id="rcChips"></div>
+    </div>
+  </section>
+
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="progress"></div>
+  <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<!-- code listings (plain text, highlighted by app.js) -->
+<script type="text/plain" id="hVert">struct Input
+{
+    float3 Position : TEXCOORD0;
+    float2 TexCoord : TEXCOORD1;
+    float3 Normal   : TEXCOORD2;
+    float4 Tangent  : TEXCOORD3;   // xyz = tangent, w = ±1
+};
+struct Output
+{
+    float4 Position : SV_Position;
+    float2 TexCoord : TEXCOORD0;
+    float3 WorldPos : TEXCOORD1;
+    float3 T : TEXCOORD2;  float3 B : TEXCOORD3;  float3 N : TEXCOORD4;
+};
+Output main(Input input)
+{
+    Output output;
+    float4 world = mul(Model, float4(input.Position, 1.0));
+    output.Position = mul(ViewProjection, world);
+    output.WorldPos = world.xyz;
+    output.TexCoord = input.TexCoord;
+
+    float3 N = normalize(mul((float3x3)Model, input.Normal));
+    float3 T = normalize(mul((float3x3)Model, input.Tangent.xyz));
+    T = normalize(T - N * dot(T, N));      // keep T perpendicular to N
+    output.N = N;
+    output.T = T;
+    output.B = cross(N, T) * input.Tangent.w;
+    return output;
+}</script>
+<script type="text/plain" id="hFrag">Texture2D<float4> AlbedoMap : register(t0, space2);
+Texture2D<float4> NormalMap : register(t1, space2);
+SamplerState AlbedoSampler  : register(s0, space2);
+SamplerState NormalSampler  : register(s1, space2);
+cbuffer Light : register(b0, space3)
+{
+    float3 LightPosition;  float3 LightColor;  float3 Ambient;
+};
+struct Input
+{
+    float2 TexCoord : TEXCOORD0;
+    float3 WorldPos : TEXCOORD1;
+    float3 T : TEXCOORD2;  float3 B : TEXCOORD3;  float3 N : TEXCOORD4;
+};
+float4 main(Input input) : SV_Target0
+{
+    float3 albedo = AlbedoMap.Sample(AlbedoSampler, input.TexCoord).rgb;
+
+    float3 n = NormalMap.Sample(NormalSampler, input.TexCoord).rgb;
+    n = n * 2.0 - 1.0;                       // color -> direction
+
+    float3x3 TBN = float3x3(normalize(input.T), normalize(input.B), normalize(input.N));
+    float3 N = normalize(mul(n, TBN));       // tangent -> world
+
+    float3 L = normalize(LightPosition - input.WorldPos);
+    float diffuse = max(dot(N, L), 0.0);
+    return float4(albedo * (Ambient + LightColor * diffuse), 1.0);
+}</script>
+<script>{{APP}}</script>
+</body>
+</html>
