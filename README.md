@@ -45,9 +45,10 @@ costs one read per connected student, so a class of 30 uses roughly 1,000–2,00
 | Deck | Source pptx | State |
 | --- | --- | --- |
 | `gat350-texture-mapping` | `GAT350 - Texture Mapping.pptx` | Done, 37 slides, live |
+| `gat350-normal-mapping` | `GAT350 - Normal Mapping.pptx` | Built, 16 slides, not pushed yet |
 
 Not converted yet (all in the Presentations folder): Computer Displays, Framebuffer, Graphics
-Introduction, Introduction to OpenGL, Lighting, Normal Mapping, OpenGL Vertex Buffer, Rasterization,
+Introduction, Introduction to OpenGL, Lighting, OpenGL Vertex Buffer, Rasterization,
 Ray Tracing, Shaders, Shadow Mapping, Transformation.
 
 Follow `../SLIDES_GUIDE.md` for every new deck.
