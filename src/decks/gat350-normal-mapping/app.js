@@ -197,14 +197,7 @@ function sphereData(R=1,la=48,lo=96){
   for(let i=0;i<la;i++) for(let j=0;j<lo;j++){ const a=i*(lo+1)+j, b=a+lo+1; idx.push(a,b,a+1,a+1,b,b+1); }
   return {pos,uv,nrm,idx,la,lo};
 }
-// a curved wall: part of a cylinder facing the camera
-function wallData(nx=64,ny=8){ const pos=[],uv=[],nrm=[],idx=[], R=1.3;
-  for(let j=0;j<=ny;j++) for(let i=0;i<=nx;i++){ const s=i/nx, t=j/ny, a=(s-.5)*2.6;
-    pos.push(R*Math.sin(a),(.5-t)*1.6,R*Math.cos(a)-R*.55); nrm.push(Math.sin(a),0,Math.cos(a)); uv.push(s*2,t); }
-  for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){ const a=j*(nx+1)+i, b=a+nx+1; idx.push(a,b,a+1,a+1,b,b+1); }
-  return {pos,uv,nrm,idx}; }
-
-const DATA={quad:withTangents(quadData()), sphere:withTangents(sphereData()), wall:withTangents(wallData())};
+const DATA={quad:withTangents(quadData()), sphere:withTangents(sphereData())};
 const MESH={}, TX={}, SM={}, P={};
 const SRC={
   litV:`in vec3 aPos; in vec2 aUV; in vec3 aNrm; in vec4 aTan; uniform mat4 uModel, uVP; uniform vec2 uTiling; out vec3 vW, vN, vT, vB; out vec2 vUV;
@@ -343,8 +336,11 @@ A.pernormal=(()=>{ const cv=$("pnCv"); let ang=-40;
     else { for(let px=l+10;px<rr;px+=34){ const n=V3.norm([-dh(px),1,0]); arrow2d(x,px,y0,px+n[0]*48,y0-n[1]*48,BLUE,2,9); } label(x,"a normal from the map at every pixel → bumps in the lighting",l,y0+80,MUTE,15); } }
   return { tick(){ const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight; x.fillStyle="#0d0d0f"; x.fillRect(0,0,W,H);
     const a=ang*Math.PI/180, L=[Math.sin(a),Math.cos(a)];
-    row(x,165,"VERTEX NORMALS · one flat triangle",false,W,L); row(x,415,"MAP NORMALS · same triangle + normal map",true,W,L);
-    const sx=W-260+L[0]*160, sy=46+(1-L[1])*40; dot(x,sx,sy,13,Y); arrow2d(x,sx,sy,sx-L[0]*60,sy+L[1]*60,Y,3,11); label(x,"light",sx+20,sy+5,Y,14); } }; })();
+    row(x,180,"VERTEX NORMALS · one flat triangle",false,W,L); row(x,425,"MAP NORMALS · same triangle + normal map",true,W,L);
+    // directional light: place the marker in the direction it shines from, relative to the middle of the rows,
+    // so a light from the left is drawn on the left (not always near the right edge)
+    const sx=W/2+L[0]*(W/2-90), sy=20+(1-L[1])*12; dot(x,sx,sy,10,Y); arrow2d(x,sx,sy,sx-L[0]*28,sy+L[1]*28,Y,3,9);
+    label(x,"light",L[0]>0?sx-16:sx+16,sy+5,Y,14,L[0]>0?"right":"left"); } }; })();
 
 /* ---------- layers: albedo, normal, N-as-color ---------- */
 A.layers=(()=>{ const cv=$("lyCv"), st=orbit(cv,{yaw:0,pitch:-.15}); const on={alb:1,nrm:1,show:0}; let t=0;
@@ -358,22 +354,32 @@ A.layers=(()=>{ const cv=$("lyCv"), st=orbit(cv,{yaw:0,pitch:-.15}); const on={a
       const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],alb:on.alb,nrm:on.nrm,show:on.show}); lightDot(cv,VP,L); } }; })();
 
 /* ---------- why tangent space ---------- */
-A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:0,pitch:0},{minP:-.8,maxP:.8}); let mode="raw", mesh="wall", show=0;
-  const TIP={raw:`<span class="k">map normal used as a world normal</span>Only the part that faces <b>world +Z</b> looks right. Faces turned toward the light get no extra light, and the bumps light up from the wrong side.`,
-    tbn:`<span class="k">rotated by the TBN matrix</span>Each pixel’s map normal is rotated to follow <b>its own</b> surface, so the whole model lights correctly.`};
+A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:.75,pitch:-.3},{minP:-.8,maxP:.8}); let mode="raw", show=0, blend=0;   // start off-axis so world +Z arrows read as parallel
+  const TIP={raw:`<span class="k">map normal used as a world normal</span>A flat spot in the map is <b>(0, 0, 1)</b>, so every arrow points the same way, at <b>world +Z</b>, wherever the surface faces. Only the middle looks right, and the bumps light up from the wrong side.`,
+    tbn:`<span class="k">rotated by the TBN matrix</span>Each pixel’s map normal is rotated to follow <b>its own</b> surface. The same <b>(0, 0, 1)</b> now points straight out of the sphere, so the whole model lights correctly.`};
   const setM=tabs($("wyMode"),k=>{ mode=k; $("wyTip").innerHTML=TIP[k]; }); setM("raw"); $("wyTip").innerHTML=TIP.raw;
-  const setS=tabs($("wyMesh"),k=>{ mesh=k; }); setS("wall");
   toggle($("wyShow"),v=>show=+v);
-  return { tick(){ const eye=eyeOf(st,3.4), L=[2.6,1.3,1.2];
-    const VP=litScene(cv,{mesh,eye,light:L,tiling:mesh==="wall"?[1,1]:[3,1.5],bug:mode==="raw"?4:0,show}); lightDot(cv,VP,L);
-    $("wyCap").textContent=mode==="raw"?"N = normalize(n)   ✗":"N = normalize(mul(n, TBN))   ✓"; } }; })();
+  // sample points for the normal arrows (spread over the sphere)
+  const d=DATA.sphere, S=[], g=(a,k,n)=>a.slice(k*n,k*n+3);
+  for(let i=6;i<=d.la-6;i+=6){ const step=Math.max(6,Math.round(8/Math.sin(i/d.la*Math.PI))); for(let j=(i/6%2)*step/2|0;j<d.lo;j+=step) S.push(i*(d.lo+1)+j); }
+  return { tick(dt){ const eye=eyeOf(st,3.4), L=[2.6,1.3,1.2];
+    blend+=((mode==="tbn"?1:0)-blend)*Math.min(1,(dt||16)/140);   // ease the arrows between the two answers
+    const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],bug:mode==="raw"?4:0,show}); lightDot(cv,VP,L);
+    $("wyCap").textContent=mode==="raw"?"N = normalize(n)   ✗":"N = normalize(mul(n, TBN))   ✓";
+    if(!VP) return; const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, s=.3;
+    S.forEach(k=>{ const p=g(d.pos,k,3), Ns=g(d.nrm,k,3); if(V3.dot(Ns,V3.sub(eye,p))<.12) return;   // front of the sphere only
+      // map normal (0,0,1): as-is it is world +Z; through TBN it becomes the surface normal
+      const n=V3.norm([Ns[0]*blend,Ns[1]*blend,Ns[2]*blend+(1-blend)]);
+      const o=toScreen(VP,p,W,H), q=toScreen(VP,[p[0]+n[0]*s,p[1]+n[1]*s,p[2]+n[2]*s],W,H);
+      dot(x,o[0],o[1],3,Y); arrow2d(x,o[0],o[1],q[0],q[1],BLUE,2.5,9); }); } }; })();
 
 /* ---------- frame: T B N at vertices ---------- */
 A.frame=(()=>{ const cv=$("frCv"), st=orbit(cv,{yaw:.5,pitch:-.35}); let mouse=null, pick=null;
   cv.addEventListener("pointermove",e=>{ mouse=localXY(e,cv); }); cv.addEventListener("pointerleave",()=>mouse=null);
   const d=DATA.sphere, S=[]; for(let i=4;i<=d.la-4;i+=4) for(let j=0;j<d.lo;j+=8){ const k=i*(d.lo+1)+j; S.push(k); }
   const g=(a,k,n)=>a.slice(k*n,k*n+3);
-  function show(k){ if(k==null){ $("frRead").innerHTML=`<span class="k">vertex</span><span class="muted">hover a vertex</span>`; return; }
+  function show(k){ if(k==null){ const dash="<span class=\"muted\">(  —  ,   —  ,   —  )</span>";   // same 4 lines as the hover readout, so the box never resizes
+    $("frRead").innerHTML=`<span class="k">vertex · <span class="muted">hover a vertex</span></span><span class="cR">T</span> ${dash}<br><span class="cG">B</span> ${dash}<br><span class="cB">N</span> ${dash}`; return; }
     const T=g(d.tan,k,4), N=g(d.nrm,k,3), B=V3.cross(N,T).map(v=>v*d.tan[k*4+3]), uv=[d.uv[k*2],d.uv[k*2+1]];
     const v=a=>`(${a.map(f2).join(", ")})`;
     $("frRead").innerHTML=`<span class="k">vertex · uv (${uv.map(f2).join(", ")})</span><span class="cR">T ${v(T)}</span><br><span class="cG">B ${v(B)}</span><br><span class="cB">N ${v(N)}</span>`; }
@@ -390,25 +396,33 @@ A.frame=(()=>{ const cv=$("frCv"), st=orbit(cv,{yaw:.5,pitch:-.35}); let mouse=n
         if(big){ const lab=(a,t,c)=>{ const q=toScreen(VP,[p[0]+a[0]*s*1.18,p[1]+a[1]*s*1.18,p[2]+a[2]*s*1.18],W,H); label(x,t,q[0],q[1]+5,c,18,"center"); }; lab(T,"T",RED); lab(B,"B",GREEN); lab(N,"N",BLUE); }
       }); x.globalAlpha=1; } }; })();
 
-/* ---------- orthonormal matrix: step through v·M ---------- */
-A.ortho=(()=>{ const svg=$("orSvg"); let step=0, ang=50; const v=[.85,.35];
+/* ---------- orthonormal matrix: step through v·M (3D view, tilted so z shows) ---------- */
+A.ortho=(()=>{ const svg=$("orSvg"); let step=0, ang=50; const v=[.8,.35,.5];
   const orS=slider("orA",a=>a+"°",a=>{ ang=a; draw(); });
-  const O=[320,330], S=210, P2=p=>[O[0]+p[0]*S,O[1]-p[1]*S];
-  function draw(){ svg.innerHTML=""; const a=ang*Math.PI/180, X=[Math.cos(a),Math.sin(a)], Yv=[-Math.sin(a),Math.cos(a)];
-    // grid
-    const g=svgEl("g",{},svg); for(let i=-3;i<=3;i++){ svgEl("line",{x1:O[0]+i*S/2,y1:40,x2:O[0]+i*S/2,y2:580,stroke:"#202026"},g); svgEl("line",{x1:20,y1:O[1]+i*S/2,x2:620,y2:O[1]+i*S/2,stroke:"#202026"},g); }
-    // local v before rotation (faint)
-    arrowSvg(svg,...P2([0,0]),...P2(v),"rgba(155,152,143,.45)",3,"6 6"); textSvg(svg,"v (local)",...P2([v[0]+.03,v[1]+.06]),MUTE,16);
-    if(step>=0){ arrowSvg(svg,...P2([0,0]),...P2(X),RED,4); textSvg(svg,"X′",...P2([X[0]*1.12,X[1]*1.12]),RED,20,"middle",600);
-      arrowSvg(svg,...P2([0,0]),...P2(Yv),GREEN,4); textSvg(svg,"Y′",...P2([Yv[0]*1.15,Yv[1]*1.15]),GREEN,20,"middle",600); }
-    const xX=[X[0]*v[0],X[1]*v[0]], tip=[xX[0]+Yv[0]*v[1],xX[1]+Yv[1]*v[1]];
-    if(step>=1) arrowSvg(svg,...P2([0,0]),...P2(xX),RED,6);
-    if(step>=2) arrowSvg(svg,...P2(xX),...P2(tip),GREEN,6);
-    if(step>=3){ arrowSvg(svg,...P2([0,0]),...P2(tip),Y,5); textSvg(svg,"v·M",...P2([tip[0]+.05,tip[1]+.08]),Y,20,"start",600); }
-    svgEl("circle",{cx:O[0],cy:O[1],r:5,fill:INK},svg);
-    const M=[[X[0],X[1],0],[Yv[0],Yv[1],0],[0,0,1]], C=["cR","cG","cB"];
+  // fixed orthographic view: turn a little about y, then tip a little about x, so +z comes out toward the lower left
+  const O=[330,320], S=165, cb=Math.cos(-.6), sb=Math.sin(-.6), cc=Math.cos(.45), sc=Math.sin(.45);
+  const P2=p=>{ const x=p[0]*cb+p[2]*sb, z=-p[0]*sb+p[2]*cb, y=p[1]*cc-z*sc; return [O[0]+x*S,O[1]-y*S]; };
+  const add=(a,b)=>a.map((v,i)=>v+b[i]), sc3=(a,k)=>a.map(v=>v*k);
+  function line(p,q,attrs){ const [x1,y1]=P2(p),[x2,y2]=P2(q); svgEl("line",{x1,y1,x2,y2,...attrs},svg); }
+  function draw(){ svg.innerHTML=""; const a=ang*Math.PI/180, X=[Math.cos(a),Math.sin(a),0], Yv=[-Math.sin(a),Math.cos(a),0], Z=[0,0,1];
+    // grid on the z = 0 plane
+    for(let i=-3;i<=3;i++){ const t=i*.4; line([t,-1.2,0],[t,1.2,0],{stroke:"#202026"}); line([-1.2,t,0],[1.2,t,0],{stroke:"#202026"}); }
+    // the original axes, faint
+    [[[1,0,0],"x"],[[0,1,0],"y"],[[0,0,1],"z"]].forEach(([e,t])=>{ line([0,0,0],sc3(e,1.45),{stroke:"#3a3a44","stroke-width":2,"stroke-dasharray":"4 6"}); textSvg(svg,t,...P2(sc3(e,1.55)),"#55545c",16,"middle"); });
+    // v in its own (local) space, faint, with a drop line to the plane so its height reads
+    line(v,[v[0],v[1],0],{stroke:"rgba(155,152,143,.35)","stroke-width":2,"stroke-dasharray":"3 5"});
+    arrowSvg(svg,...P2([0,0,0]),...P2(v),"rgba(155,152,143,.5)",3,"6 6"); textSvg(svg,"v (local)",...P2(add(v,[.04,.06,0])),MUTE,16);
+    // the rotated axes = the rows of M
+    [[X,RED,"X′"],[Yv,GREEN,"Y′"],[Z,BLUE,"Z′"]].forEach(([e,c,t])=>{ arrowSvg(svg,...P2([0,0,0]),...P2(e),c,4); textSvg(svg,t,...P2(sc3(e,1.14)),c,20,"middle",600); });
+    const p1=sc3(X,v[0]), p2=add(p1,sc3(Yv,v[1])), tip=add(p2,sc3(Z,v[2]));
+    if(step>=1) arrowSvg(svg,...P2([0,0,0]),...P2(p1),RED,6);
+    if(step>=2) arrowSvg(svg,...P2(p1),...P2(p2),GREEN,6);
+    if(step>=3){ arrowSvg(svg,...P2(p2),...P2(tip),BLUE,6);
+      arrowSvg(svg,...P2([0,0,0]),...P2(tip),Y,5); const t2=P2(tip); textSvg(svg,"v·M",t2[0]-10,t2[1]-8,Y,20,"end",600); }
+    const o=P2([0,0,0]); svgEl("circle",{cx:o[0],cy:o[1],r:5,fill:INK},svg);
+    const M=[X,Yv,Z], C=["cR","cG","cB"];
     $("orMat").innerHTML=M.map((r,i)=>r.map(n=>`<span class="${C[i]}">${f2(n)}</span>`).join("")).join("");
-    $("orRes").textContent=step>=3?`= (${f2(tip[0])}, ${f2(tip[1])}, 0)`:"";
+    $("orRes").textContent=step>=3?`= (${tip.map(f2).join(", ")})`:"";
     $("orSteps").querySelectorAll("div").forEach((e,i)=>{ e.classList.toggle("on",i<=step); e.classList.toggle("cur",i===step); }); }
   return { enter(dir){ step=dir<0?3:0; orS.set(ang); }, step(){ if(step<3){ step++; draw(); return true; } return false; }, back(){ if(step>0){ step--; draw(); return true; } return false; } }; })();
 
@@ -428,23 +442,24 @@ A.ortho=(()=>{ const svg=$("orSvg"); let step=0, ang=50; const v=[.85,.35];
 
 /* ---------- code tips ---------- */
 codeTips($("vsCode"),$("vsTip"),[
-  [1,7,`<span class="k">vertex input</span>The tangent is a 4th attribute. <b>xyz</b> is the tangent direction (+U). <b>w</b> is ±1: it flips B for mirrored UVs.`],
-  [6,6,`<span class="k">Tangent</span>Comes from the mesh. Model importers (e.g. Assimp with <code>aiProcess_CalcTangentSpace</code>) compute it from the UVs.`],
-  [8,14,`<span class="k">output</span>T, B and N go to the fragment shader. The rasterizer blends them across the triangle.`],
-  [18,21,`<span class="k">position</span>Same as before: model → world → clip space. <code>Model</code> and <code>ViewProjection</code> come from a cbuffer at <code>b0, space1</code>.`],
-  [23,24,`<span class="k">rotate to world</span>N and T use the rotation part of the Model matrix (<code>(float3x3)Model</code>). Use the normal matrix if the model is scaled non-uniformly.`],
-  [25,25,`<span class="k">Gram-Schmidt</span>Remove any part of T that points along N, so T and N are exactly <b>perpendicular</b>.`],
-  [28,28,`<span class="k">bitangent</span>The third axis is perpendicular to both. <code>w</code> picks which way it points.`]
-],`<span class="k">vertex shader</span>Rotate <b>N</b> and <b>T</b> into world space, make them perpendicular and compute <b>B</b>. Then pass all three to the fragment shader.`);
+  [1,7,`<span class="k">vertex input</span>The tangent is a 4th attribute: a <code>float3</code> pointing along <b>+U</b> on the surface.`],
+  [6,6,`<span class="k">tangent</span>Comes from the mesh. Model importers (e.g. Assimp with <code>aiProcess_CalcTangentSpace</code>) compute it from the UVs.`],
+  [8,15,`<span class="k">output</span>Only <b>normal</b> and <b>tangent</b> go to the fragment shader. The rasterizer blends them across the triangle; B and the TBN are built per pixel.`],
+  [19,21,`<span class="k">position</span>Same as before: model → world → clip space. <code>object.model</code> and <code>frame.viewProjection</code> come from vertex uniform buffers.`],
+  [23,23,`<span class="k">normal → world</span>Normals use the <b>normal matrix</b> (inverse-transpose of the model matrix), so non-uniform scale doesn’t tilt them.`],
+  [24,24,`<span class="k">tangent → world</span>The tangent lies <b>along</b> the surface, like an edge, so it uses the model matrix itself.`]
+],`<span class="k">vertex shader</span>Move <b>N</b> and <b>T</b> into world space and pass them on. The TBN is built in the fragment shader.`);
 codeTips($("psCode"),$("psTip"),[
   [1,4,`<span class="k">two texture slots</span>Slot 0 is albedo (<code>t0</code>/<code>s0</code>) and slot 1 is the normal map (<code>t1</code>/<code>s1</code>). Create the normal map texture as <code>R8G8B8A8_UNORM</code>, <b>not</b> <code>_UNORM_SRGB</code>. It holds data, not color.`],
   [5,8,`<span class="k">light</span>A fragment uniform buffer (<code>b0, space3</code>), pushed with <code>SDL_PushGPUFragmentUniformData</code>.`],
-  [9,14,`<span class="k">input</span>Interpolated T, B and N. After interpolation they are no longer exactly unit length.`],
-  [19,20,`<span class="k">decode</span>Sample the map and turn color (0…1) into a direction (−1…1).`],
-  [22,22,`<span class="k">TBN</span><code>float3x3(a, b, c)</code> puts <b>a, b, c in the rows</b>. Normalize after interpolation.`],
-  [23,23,`<span class="k">tangent → world</span>Rows are T, B, N, so the vector goes on the <b>left</b>: <code>mul(n, TBN)</code> = n.x·T + n.y·B + n.z·N.`],
-  [25,27,`<span class="k">lighting</span>Ordinary diffuse lighting, now with the per-pixel normal <b>N</b>.`]
-],`<span class="k">fragment shader</span>Sample the normal map, decode it, rotate it into world space with TBN, then light with it.`);
+  [9,15,`<span class="k">input</span>Interpolated normal and tangent. After interpolation they are no longer unit length or exactly perpendicular.`],
+  [20,20,`<span class="k">decode</span>Sample the map and turn color (0…1) into a direction (−1…1).<br><br>To make bumps stronger or weaker, scale the tilt: <code>normal.xy *= normalStrength</code>.`],
+  [22,23,`<span class="k">Gram-Schmidt</span>Normalize N, then remove any part of T that points along N, so T and N are exactly <b>perpendicular</b>.`],
+  [24,24,`<span class="k">bitangent</span>The third axis is perpendicular to both: <code>B = cross(N, T)</code>.`],
+  [25,25,`<span class="k">TBN</span><code>float3x3(a, b, c)</code> puts <b>a, b, c in the rows</b>.`],
+  [26,26,`<span class="k">tangent → world</span>Rows are T, B, N, so the vector goes on the <b>left</b>: <code>mul(normal, TBN)</code> = n.x·T + n.y·B + n.z·N.`],
+  [28,30,`<span class="k">lighting</span>Ordinary diffuse lighting, now with the per-pixel normal <b>N</b>.`]
+],`<span class="k">fragment shader</span>Decode the map, build the TBN, rotate the normal into world space, then light with it.`);
 
 /* ---------- two spaces ---------- */
 A.spaces=(()=>{ const svg=$("spSvg"); let mode="world", rot=0, target=0; const th=28*Math.PI/180;
