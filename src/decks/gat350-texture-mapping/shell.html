@@ -805,6 +805,29 @@
     </div>
   </section>
 
+  <!-- 32b refraction in 3D: follow the view ray into the model to the cube -->
+  <section class="slide" data-id="refract3d">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:40px">
+      <div class="stack" style="gap:12px">
+        <h2 class="rise" style="--i:0"><span class="n">REFRACTION</span>Follow the view ray</h2>
+        <ol class="num steps rise" style="--i:1;font-size:19px" id="t3Steps">
+          <li>The camera looks at a point on the model: view direction <b style="color:var(--blue)">i</b>.</li>
+          <li>The surface <b style="color:var(--green)">normal n</b> at that point.</li>
+          <li><code>t = refract(i, n, 1.0 / IOR)</code> bends into the glass, toward the normal. One bend only: real glass bends again on the way out.</li>
+          <li>Same lookup as reflection: only t’s <b class="y">direction</b> is used, as if it leaves the cube’s <b>center</b>.</li>
+        </ol>
+        <div class="card readout rise" style="--i:2;font-size:16px" id="t3Read"></div>
+        <div class="ctl rise" style="--i:3"><span>aim left/right</span><input type="range" id="t3X" min="-1" max="1" step=".01" value=".7"><output id="t3XO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>aim up/down</span><input type="range" id="t3Y" min="-1" max="1" step=".01" value=".15"><output id="t3YO"></output></div>
+        <div class="hint rise" style="--i:4">→ follows the ray · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="t3Cv"></canvas><div class="cap" id="t3Cap"></div>
+        <div id="t3Size" style="position:absolute;top:14px;right:18px;z-index:2;width:420px;background:rgba(13,13,15,.8);padding:8px 14px;border-radius:10px;display:grid;gap:6px">
+          <div class="ctl" style="grid-template-columns:110px 1fr 60px"><span>cube size</span><input type="range" id="t3B" min="2.4" max="12" step=".1" value="2.6"><output id="t3BO"></output></div>
+          <div class="ctl" style="grid-template-columns:110px 1fr 60px"><span>IOR</span><input type="range" id="t3I" min="1" max="2.42" step=".01" value="1.52"><output id="t3IO"></output></div></div></div>
+    </div>
+  </section>
+
   <!-- 33 refraction shader -->
   <section class="slide" data-id="refrshader">
     <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Refraction shader</h2>
