@@ -376,7 +376,39 @@
     </div>
   </section>
 
-  <!-- 15 bugs -->
+  <!-- 15 tangent-space vertex shader -->
+  <section class="slide" data-id="tsvshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · TANGENT SPACE · VERTEX</span>Move the light into tangent space</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap_ts.vert.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hVertTS" id="tvsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="tvsTip" style="min-height:250px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+        <div class="callout" style="font-size:18px">The TBN moves <b>into the vertex shader</b>. It runs once per vertex, not once per pixel.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 tangent-space fragment shader -->
+  <section class="slide" data-id="tspshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · TANGENT SPACE · FRAGMENT</span>Decode and light, no TBN</h2>
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap_ts.frag.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hFragTS" id="tpsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="tpsTip" style="min-height:260px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+        <div class="callout" style="font-size:18px">Compare with the world-space version: no tangent, no Gram-Schmidt, no matrix. Just <b>sample, decode, dot</b>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 bugs -->
   <section class="slide" data-id="bugs">
     <div class="two" style="grid-template-columns:.9fr 1.1fr">
       <div class="stack" style="gap:18px">
@@ -396,7 +428,7 @@
     </div>
   </section>
 
-  <!-- 16 recap -->
+  <!-- 18 recap -->
   <section class="slide" data-id="recap">
     <canvas class="bg" id="rcBg"></canvas>
     <div class="vignette"></div>
@@ -468,6 +500,64 @@ float4 main(Input input) : SV_Target0
     float3 N = normalize(mul(normal, TBN));      // tangent -> world
 
     float3 L = normalize(lightPosition - input.worldPosition);
+    float diffuse = max(dot(N, L), 0.0);
+    return float4(albedo * (ambient + lightColor * diffuse), 1.0);
+}</script>
+<script type="text/plain" id="hVertTS">cbuffer Light : register(b2, space1)
+{
+    float3 lightPosition;
+};
+struct Input
+{
+    float3 position : TEXCOORD0;
+    float2 texcoord : TEXCOORD1;
+    float3 normal   : TEXCOORD2;
+    float3 tangent  : TEXCOORD3;
+};
+struct Output
+{
+    float4 position     : SV_Position;
+    float2 texcoord     : TEXCOORD0;
+    float3 tangentLight : TEXCOORD1;   // L in tangent space
+};
+Output main(Input input)
+{
+    Output output;
+    output.texcoord = input.texcoord;
+    float3 worldPosition = mul(object.model, float4(input.position, 1.0)).xyz;
+    output.position = mul(frame.viewProjection, float4(worldPosition, 1.0));
+
+    float3 N = normalize(mul((float3x3)object.normalMatrix, input.normal));
+    float3 T = normalize(mul((float3x3)object.model, input.tangent));
+    T = normalize(T - N * dot(T, N));
+    float3 B = cross(N, T);
+    float3x3 TBN = float3x3(T, B, N);
+
+    float3 L = lightPosition - worldPosition;
+    output.tangentLight = mul(TBN, L);           // world -> tangent
+    return output;
+}</script>
+<script type="text/plain" id="hFragTS">Texture2D<float4> base_texture   : register(t0, space2);
+SamplerState      base_sampler   : register(s0, space2);
+Texture2D<float4> normal_texture : register(t1, space2);
+SamplerState      normal_sampler : register(s1, space2);
+cbuffer Light : register(b0, space3)
+{
+    float3 lightColor;  float3 ambient;
+};
+struct Input
+{
+    float2 texcoord     : TEXCOORD0;
+    float3 tangentLight : TEXCOORD1;
+};
+float4 main(Input input) : SV_Target0
+{
+    float3 albedo = base_texture.Sample(base_sampler, input.texcoord).rgb;
+
+    float3 N = normal_texture.Sample(normal_sampler, input.texcoord).rgb * 2.0 - 1.0;
+    N = normalize(N);                            // already in tangent space
+
+    float3 L = normalize(input.tangentLight);
     float diffuse = max(dot(N, L), 0.0);
     return float4(albedo * (ambient + lightColor * diffuse), 1.0);
 }</script>

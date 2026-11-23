@@ -377,7 +377,39 @@
     </div>
   </section>
 
-  <!-- 15 bugs -->
+  <!-- 15 tangent-space vertex shader -->
+  <section class="slide" data-id="tsvshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · TANGENT SPACE · VERTEX</span>Move the light into tangent space</h2>
+    <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap_ts.vert.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hVertTS" id="tvsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="tvsTip" style="min-height:250px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+        <div class="callout" style="font-size:18px">The TBN moves <b>into the vertex shader</b>. It runs once per vertex, not once per pixel.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 tangent-space fragment shader -->
+  <section class="slide" data-id="tspshader">
+    <h2 class="rise" style="--i:0"><span class="n">HLSL · TANGENT SPACE · FRAGMENT</span>Decode and light, no TBN</h2>
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:32px;margin-top:20px">
+      <div class="rise" style="--i:1">
+        <div class="codeHead"><span>normalmap_ts.frag.hlsl</span><span class="tag t-blue">SDL_shadercross</span></div>
+        <pre class="src xs" data-code="hFragTS" id="tpsCode"></pre>
+      </div>
+      <div class="stack rise" style="--i:2;gap:16px">
+        <div class="card tip" id="tpsTip" style="min-height:260px;font-size:20px"></div>
+        <div class="hint">hover a line of the shader</div>
+        <div class="callout" style="font-size:18px">Compare with the world-space version: no tangent, no Gram-Schmidt, no matrix. Just <b>sample, decode, dot</b>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 bugs -->
   <section class="slide" data-id="bugs">
     <div class="two" style="grid-template-columns:.9fr 1.1fr">
       <div class="stack" style="gap:18px">
@@ -397,7 +429,7 @@
     </div>
   </section>
 
-  <!-- 16 recap -->
+  <!-- 18 recap -->
   <section class="slide" data-id="recap">
     <canvas class="bg" id="rcBg"></canvas>
     <div class="vignette"></div>
@@ -408,7 +440,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 19, 8:25 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 8:09 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -469,6 +501,64 @@ float4 main(Input input) : SV_Target0
     float3 N = normalize(mul(normal, TBN));      // tangent -> world
 
     float3 L = normalize(lightPosition - input.worldPosition);
+    float diffuse = max(dot(N, L), 0.0);
+    return float4(albedo * (ambient + lightColor * diffuse), 1.0);
+}</script>
+<script type="text/plain" id="hVertTS">cbuffer Light : register(b2, space1)
+{
+    float3 lightPosition;
+};
+struct Input
+{
+    float3 position : TEXCOORD0;
+    float2 texcoord : TEXCOORD1;
+    float3 normal   : TEXCOORD2;
+    float3 tangent  : TEXCOORD3;
+};
+struct Output
+{
+    float4 position     : SV_Position;
+    float2 texcoord     : TEXCOORD0;
+    float3 tangentLight : TEXCOORD1;   // L in tangent space
+};
+Output main(Input input)
+{
+    Output output;
+    output.texcoord = input.texcoord;
+    float3 worldPosition = mul(object.model, float4(input.position, 1.0)).xyz;
+    output.position = mul(frame.viewProjection, float4(worldPosition, 1.0));
+
+    float3 N = normalize(mul((float3x3)object.normalMatrix, input.normal));
+    float3 T = normalize(mul((float3x3)object.model, input.tangent));
+    T = normalize(T - N * dot(T, N));
+    float3 B = cross(N, T);
+    float3x3 TBN = float3x3(T, B, N);
+
+    float3 L = lightPosition - worldPosition;
+    output.tangentLight = mul(TBN, L);           // world -> tangent
+    return output;
+}</script>
+<script type="text/plain" id="hFragTS">Texture2D<float4> base_texture   : register(t0, space2);
+SamplerState      base_sampler   : register(s0, space2);
+Texture2D<float4> normal_texture : register(t1, space2);
+SamplerState      normal_sampler : register(s1, space2);
+cbuffer Light : register(b0, space3)
+{
+    float3 lightColor;  float3 ambient;
+};
+struct Input
+{
+    float2 texcoord     : TEXCOORD0;
+    float3 tangentLight : TEXCOORD1;
+};
+float4 main(Input input) : SV_Target0
+{
+    float3 albedo = base_texture.Sample(base_sampler, input.texcoord).rgb;
+
+    float3 N = normal_texture.Sample(normal_sampler, input.texcoord).rgb * 2.0 - 1.0;
+    N = normalize(N);                            // already in tangent space
+
+    float3 L = normalize(input.tangentLight);
     float diffuse = max(dot(N, L), 0.0);
     return float4(albedo * (ambient + lightColor * diffuse), 1.0);
 }</script>
@@ -934,6 +1024,27 @@ codeTips($("psCode"),$("psTip"),[
   [26,26,`<span class="k">tangent → world</span>Rows are T, B, N, so the vector goes on the <b>left</b>: <code>mul(normal, TBN)</code> = n.x·T + n.y·B + n.z·N.`],
   [28,30,`<span class="k">lighting</span>Ordinary diffuse lighting, now with the per-pixel normal <b>N</b>.`]
 ],`<span class="k">fragment shader</span>Decode the map, build the TBN, rotate the normal into world space, then light with it.`);
+
+/* ---------- tangent-space code tips ---------- */
+codeTips($("tvsCode"),$("tvsTip"),[
+  [1,4,`<span class="k">light, per vertex</span>The light position is now needed in the <b>vertex</b> shader, so it moves to a vertex uniform buffer (<code>space1</code>), pushed with <code>SDL_PushGPUVertexUniformData</code>. Use the next free slot after your frame and object buffers.`],
+  [5,11,`<span class="k">vertex input</span>Same four attributes as the world-space version, tangent included.`],
+  [12,17,`<span class="k">output</span>No normal or tangent goes to the fragment shader. Only the <b>light vector in tangent space</b>, which the rasterizer interpolates.`],
+  [22,23,`<span class="k">position</span>Same as before: model → world → clip space. The world position is kept local so we can build L.`],
+  [25,26,`<span class="k">N and T → world</span>Normal through the normal matrix, tangent through the model matrix, exactly as before.`],
+  [27,28,`<span class="k">Gram-Schmidt + bitangent</span>Make T perpendicular to N, then <code>B = cross(N, T)</code>. Same steps, now per vertex.`],
+  [29,29,`<span class="k">TBN</span>Rows are T, B, N, the same matrix as the world-space version.`],
+  [31,31,`<span class="k">L in world space</span>Point from the surface to the light. Don’t normalize yet: an unnormalized vector interpolates more accurately.`],
+  [32,32,`<span class="k">world → tangent</span>Vector on the <b>right</b>: <code>mul(TBN, L)</code> = (T·L, B·L, N·L). That multiplies by the <b>transpose</b>, which is the inverse of a rotation.<br><br>For specular, do the same to the view vector V.`]
+],`<span class="k">vertex shader</span>Build the TBN per vertex and use its transpose to rotate the <b>light</b> into tangent space.`);
+codeTips($("tpsCode"),$("tpsTip"),[
+  [1,4,`<span class="k">two texture slots</span>Unchanged: albedo in slot 0, normal map in slot 1, created as <code>R8G8B8A8_UNORM</code>.`],
+  [5,8,`<span class="k">light</span>The position moved to the vertex shader. Only color and ambient stay in the fragment uniform buffer.`],
+  [9,12,`<span class="k">input</span>Just the UV and the interpolated tangent-space light vector. No normal, no tangent.`],
+  [18,19,`<span class="k">decode</span>Turn color (0…1) into a direction (−1…1). This normal is <b>already in tangent space</b>, so it is used as-is.`],
+  [21,21,`<span class="k">renormalize</span>Interpolation shortens the vector, so normalize it per pixel.`],
+  [22,23,`<span class="k">lighting</span>Same diffuse term. Both vectors are in tangent space, so the dot product gives the same answer as in world space.`]
+],`<span class="k">fragment shader</span>Sample the map and light with it directly. The space change already happened per vertex.`);
 
 /* ---------- two spaces ---------- */
 A.spaces=(()=>{ const svg=$("spSvg"); let mode="world", rot=0, target=0; const th=28*Math.PI/180;

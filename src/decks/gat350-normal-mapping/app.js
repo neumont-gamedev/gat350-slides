@@ -461,6 +461,27 @@ codeTips($("psCode"),$("psTip"),[
   [28,30,`<span class="k">lighting</span>Ordinary diffuse lighting, now with the per-pixel normal <b>N</b>.`]
 ],`<span class="k">fragment shader</span>Decode the map, build the TBN, rotate the normal into world space, then light with it.`);
 
+/* ---------- tangent-space code tips ---------- */
+codeTips($("tvsCode"),$("tvsTip"),[
+  [1,4,`<span class="k">light, per vertex</span>The light position is now needed in the <b>vertex</b> shader, so it moves to a vertex uniform buffer (<code>space1</code>), pushed with <code>SDL_PushGPUVertexUniformData</code>. Use the next free slot after your frame and object buffers.`],
+  [5,11,`<span class="k">vertex input</span>Same four attributes as the world-space version, tangent included.`],
+  [12,17,`<span class="k">output</span>No normal or tangent goes to the fragment shader. Only the <b>light vector in tangent space</b>, which the rasterizer interpolates.`],
+  [22,23,`<span class="k">position</span>Same as before: model → world → clip space. The world position is kept local so we can build L.`],
+  [25,26,`<span class="k">N and T → world</span>Normal through the normal matrix, tangent through the model matrix, exactly as before.`],
+  [27,28,`<span class="k">Gram-Schmidt + bitangent</span>Make T perpendicular to N, then <code>B = cross(N, T)</code>. Same steps, now per vertex.`],
+  [29,29,`<span class="k">TBN</span>Rows are T, B, N, the same matrix as the world-space version.`],
+  [31,31,`<span class="k">L in world space</span>Point from the surface to the light. Don’t normalize yet: an unnormalized vector interpolates more accurately.`],
+  [32,32,`<span class="k">world → tangent</span>Vector on the <b>right</b>: <code>mul(TBN, L)</code> = (T·L, B·L, N·L). That multiplies by the <b>transpose</b>, which is the inverse of a rotation.<br><br>For specular, do the same to the view vector V.`]
+],`<span class="k">vertex shader</span>Build the TBN per vertex and use its transpose to rotate the <b>light</b> into tangent space.`);
+codeTips($("tpsCode"),$("tpsTip"),[
+  [1,4,`<span class="k">two texture slots</span>Unchanged: albedo in slot 0, normal map in slot 1, created as <code>R8G8B8A8_UNORM</code>.`],
+  [5,8,`<span class="k">light</span>The position moved to the vertex shader. Only color and ambient stay in the fragment uniform buffer.`],
+  [9,12,`<span class="k">input</span>Just the UV and the interpolated tangent-space light vector. No normal, no tangent.`],
+  [18,19,`<span class="k">decode</span>Turn color (0…1) into a direction (−1…1). This normal is <b>already in tangent space</b>, so it is used as-is.`],
+  [21,21,`<span class="k">renormalize</span>Interpolation shortens the vector, so normalize it per pixel.`],
+  [22,23,`<span class="k">lighting</span>Same diffuse term. Both vectors are in tangent space, so the dot product gives the same answer as in world space.`]
+],`<span class="k">fragment shader</span>Sample the map and light with it directly. The space change already happened per vertex.`);
+
 /* ---------- two spaces ---------- */
 A.spaces=(()=>{ const svg=$("spSvg"); let mode="world", rot=0, target=0; const th=28*Math.PI/180;
   const nT=V3.norm([.42,0,.9]);           // map normal (tangent space): x along T, z along N
