@@ -756,6 +756,26 @@
     </div>
   </section>
 
+  <!-- 30b reflection in 3D: follow the view ray off the model to the cube -->
+  <section class="slide" data-id="reflect3d">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:40px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">ENVIRONMENT MAPPING</span>Following the view ray</h2>
+        <ol class="num steps rise" style="--i:1;font-size:20px" id="r3Steps">
+          <li>The camera looks at a point on the model: the view direction <b style="color:var(--blue)">i</b>.</li>
+          <li>The surface <b style="color:var(--green)">normal n</b> at that point.</li>
+          <li><code>r = reflect(i, n)</code> bounces off toward the cube.</li>
+          <li>The cubemap only uses the <b class="y">direction</b> of r, as if it starts at the cube’s center. That picks a face and a texel: the color of this pixel.</li>
+        </ol>
+        <div class="card readout rise" style="--i:2;font-size:16px" id="r3Read"></div>
+        <div class="ctl rise" style="--i:3"><span>aim left/right</span><input type="range" id="r3X" min="-1" max="1" step=".01" value=".35"><output id="r3XO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>aim up/down</span><input type="range" id="r3Y" min="-1" max="1" step=".01" value=".25"><output id="r3YO"></output></div>
+        <div class="hint rise" style="--i:4">→ follows the ray · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="r3Cv"></canvas><div class="cap" id="r3Cap"></div></div>
+    </div>
+  </section>
+
   <!-- 31 reflection shader -->
   <section class="slide" data-id="reflshader">
     <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Reflection shader</h2>
@@ -831,7 +851,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 10:21 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 10:44 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -1312,6 +1332,10 @@ const SRC={
     void main(){ vec3 N=normalize(vN), I=normalize(vW-uCam); vec3 d=reflect(I,N);
       if(uMode==1){ vec3 t=refract(I,N,1./uIOR); if(dot(t,t)>0.) d=t; }
       vec3 c=texture(uCube,d).rgb; if(uMode==1) c*=vec3(.92,.97,1.); o=vec4(c,1.); }`,
+  // the cube around the scene, seen from outside: walls facing the camera are dropped so you can look in
+  boxV:`in vec3 aPos; in vec3 aNrm; uniform mat4 uVP; uniform float uB; out vec3 vDir, vW, vN; void main(){ vDir=aPos; vN=aNrm; vW=aPos*uB; gl_Position=uVP*vec4(vW,1.); }`,
+  boxF:`in vec3 vDir, vW, vN; uniform samplerCube uCube; uniform vec3 uCam, uOnly; uniform float uAlpha; out vec4 o;
+    void main(){ if(dot(uOnly,uOnly)>0.){ if(dot(vN,uOnly)<.5) discard; } else if(dot(vN,uCam-vW)>0.) discard; o=vec4(texture(uCube,vDir).rgb*.8,uAlpha); }`,   // uOnly: draw just that one face
   flatV:`in vec3 aPos; uniform mat4 uMVP; void main(){ gl_Position=uMVP*vec4(aPos,1.); }`,
   flatF:`uniform vec4 uColor; out vec4 o; void main(){ o=uColor; }`
 };
@@ -1319,7 +1343,7 @@ const TX={}, SM={};
 if(GL){
   try{
     P.tex=GL.program(SRC.texV,SRC.texF); P.lit=GL.program(SRC.litV,SRC.litF); P.sky=GL.program(SRC.skyV,SRC.skyF);
-    P.env=GL.program(SRC.envV,SRC.envF); P.flat=GL.program(SRC.flatV,SRC.flatF);
+    P.env=GL.program(SRC.envV,SRC.envF); P.flat=GL.program(SRC.flatV,SRC.flatF); P.box=GL.program(SRC.boxV,SRC.boxF);
     MESH.quad=GL.mesh(quadData()); MESH.cube=GL.mesh(cubeData()); MESH.sphere=GL.mesh(sphereData()); MESH.torus=GL.mesh(torusData());
     MESH.edges=GL.mesh(edgesData(),GL.gl.LINES);
     MESH.floor=GL.mesh({pos:[-60,0,-200, 60,0,-200, 60,0,4, -60,0,4],uv:[0,0,1,0,1,1,0,1],nrm:[0,1,0,0,1,0,0,1,0,0,1,0],idx:[0,1,2,0,2,3]});
@@ -2013,6 +2037,63 @@ function litDemo(cv,opt){
     key.classList.toggle("on",k>=3);
   }
   A.reflect={ enter(d){ k=d<0?3:0; ang=-.75; draw(); }, step(){ if(k>=3) return false; k++; draw(); return true; }, back(){ if(k<=0) return false; k--; draw(); return true; } };
+})();
+
+/* ---------- reflection in 3D: follow the view ray off the model to the cube ---------- */
+(() => {
+  const cv=$("r3Cv"), cap=$("r3Cap"), read=$("r3Read"), lis=[...$("r3Steps").children], B=2.6, E=[0,.45,2.05];   // cube half-size, the camera in the scene
+  const st=orbit(cv,{yaw:1.25,pitch:-.25},{k:.006}); let k=0, aim=[.35,.25], last="";
+  const sx=slider("r3X",v=>fx(v),v=>aim[0]=v), sy=slider("r3Y",v=>fx(v),v=>aim[1]=v);
+  // colors for the readout swatch, read from the same cross image the cubemap is built from
+  let sky=null; whenLoaded(IM.sky,()=>{ try{ const c=document.createElement("canvas"); c.width=IM.sky.naturalWidth; c.height=IM.sky.naturalHeight; const x=c.getContext("2d"); x.drawImage(IM.sky,0,0); sky={d:x.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height}; }catch(e){} });
+  function skyCol(q){ if(!sky) return "#888"; const W=Math.floor(sky.w/4), H=Math.floor(sky.h/3), px=Math.min(W-1,Math.floor(q.px*W))+q.f.cell[0]*W, py=Math.min(H-1,Math.floor(q.py*H))+q.f.cell[1]*H, i=(py*sky.w+px)*4; return `rgb(${sky.d[i]},${sky.d[i+1]},${sky.d[i+2]})`; }
+  const add=(a,b)=>a.map((v,i)=>v+b[i]), sc=(a,s)=>a.map(v=>v*s), lerp3=(a,b,t)=>add(a,sc(V3.sub(b,a),t));
+  function hitSphere(o,d){ const b=V3.dot(o,d), c=V3.dot(o,o)-1, h=b*b-c; if(h<0) return -1; const t=-b-Math.sqrt(h); return t>1e-4?t:-1; }   // unit sphere at the origin
+  function toWall(o,d){ let t=1e9; for(let i=0;i<3;i++) if(Math.abs(d[i])>1e-6) t=Math.min(t,((d[i]>0?B:-B)-o[i])/d[i]); return add(o,sc(d,t)); }
+  function trace(){ const d=V3.norm(V3.sub([aim[0]*1.25,aim[1]*1.25,0],E)), t=hitSphere(E,d);
+    if(t<0) return {d,miss:true,Q:toWall(E,d),C:toWall([0,0,0],d),look:d};
+    const P=add(E,sc(d,t)), n=P, r=V3.sub(d,sc(n,2*V3.dot(n,d))); return {d,P,n,r,Q:toWall(P,r),C:toWall([0,0,0],r),look:r}; }
+  function show(){ lis.forEach((l,i)=>{ l.classList.toggle("on",i===k); l.classList.toggle("done",i<k); }); last=""; }
+  function readout(T){ const v=a=>`(${a.map(n=>fx(n)).join(", ")})`, dash=`<span class="muted">—</span>`, q=faceOf(T.look);
+    const sw=`<span style="display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-3px;background:${skyCol(q)};border:1px solid rgba(255,255,255,.3)"></span> <b>${q.f.axis} ${q.f.name}</b> · layer ${q.f.layer} · (${q.px.toFixed(2)}, ${q.py.toFixed(2)})`;
+    const L=T.miss?[`<span style="color:var(--blue)">i = ${v(T.d)}</span>`,`<span class="muted">misses the model: sees the sky directly</span>`,dash,k>=3?sw:dash]
+      :[`<span style="color:var(--blue)">i = ${v(T.d)}</span>`,k>=1?`<span style="color:var(--green)">n = ${v(T.n)}</span>`:dash,k>=2?`<span style="color:var(--y)">r = ${v(T.r)}</span>`:dash,k>=3?sw:dash];
+    const h=L.join("<br>"); if(h!==last){ read.innerHTML=h; last=h; } }
+  function overlay(VP,eye,T){ const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, m=VP;
+    const S=p=>{ const X=m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12], Yc=m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13], w=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15]; return [(X/w*.5+.5)*W,(.5-Yc/w*.5)*H]; };
+    const hidden=p=>{ const v=V3.sub(p,eye), l=Math.hypot(...v), t=hitSphere(eye,sc(v,1/l)); return t>0&&t<l-1e-3; };   // behind the sphere, as seen from the orbit camera
+    function ray(a,b,col,w,dash,arrow=true){ const N=60; x.strokeStyle=col; x.fillStyle=col; x.lineWidth=w; x.lineCap=dash?"butt":"round"; x.setLineDash(dash||[]); let off=0;
+      for(let j=0;j<N;j++){ const s0=S(lerp3(a,b,j/N)), s1=S(lerp3(a,b,(j+1)/N)); x.globalAlpha=hidden(lerp3(a,b,(j+.5)/N))?.2:1; x.lineDashOffset=-off; x.beginPath(); x.moveTo(...s0); x.lineTo(...s1); x.stroke(); off+=Math.hypot(s1[0]-s0[0],s1[1]-s0[1]); }
+      x.setLineDash([]); x.lineDashOffset=0;
+      if(arrow){ const s0=S(lerp3(a,b,.97)), s1=S(b), an=Math.atan2(s1[1]-s0[1],s1[0]-s0[0]), hd=16; x.globalAlpha=hidden(b)?.25:1;
+        x.beginPath(); x.moveTo(...s1); x.lineTo(s1[0]-Math.cos(an-.4)*hd,s1[1]-Math.sin(an-.4)*hd); x.lineTo(s1[0]-Math.cos(an+.4)*hd,s1[1]-Math.sin(an+.4)*hd); x.closePath(); x.fill(); }
+      x.globalAlpha=1; }
+    const ring=(p,col,r=11)=>{ const s=S(p); x.globalAlpha=hidden(p)?.3:1; dot(x,s[0],s[1],r,null,col); dot(x,s[0],s[1],4,col); x.globalAlpha=1; };
+    const tag=(p,t,col,dx=14,dy=-10)=>{ const s=S(p); x.globalAlpha=hidden(p)?.4:1; label(x,t,s[0]+dx,s[1]+dy,col,18,dx<0?"right":"left"); x.globalAlpha=1; };
+    // the camera in the scene
+    const e=S(E); dot(x,e[0],e[1],9,INK); tag(E,"camera",INK,14,22);
+    if(T.miss){ ray(E,T.Q,BLUE,4); tag(lerp3(E,T.Q,.5),"i",BLUE); ring(T.Q,BLUE); }
+    else { ray(E,T.P,BLUE,4); tag(lerp3(E,T.P,.55),"i",BLUE); const sp=S(T.P); dot(x,sp[0],sp[1],5,INK);
+      if(k>=1){ ray(T.P,add(T.P,sc(T.n,1.1)),GREEN,4); tag(add(T.P,sc(T.n,1.1)),"n",GREEN); }
+      if(k>=2){ ray(T.P,T.Q,Y,4); tag(lerp3(T.P,T.Q,.6),"r",Y); ring(T.Q,k>=3?MUTE:Y); } }
+    if(k>=3){ const q=faceOf(T.look), f=q.f, c=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v])=>S([0,1,2].map(i=>(f.n[i]+f.r[i]*u+f.u[i]*v)*B)));
+      x.fillStyle="rgba(255,194,14,.08)"; x.strokeStyle=Y; x.lineWidth=2.5; x.beginPath(); c.forEach((p,i)=>i?x.lineTo(...p):x.moveTo(...p)); x.closePath(); x.fill(); x.stroke();
+      ray([0,0,0],T.C,AMBER,3,[8,8]); ring(T.C,Y,13); tag(T.C,"sampled",Y); }
+  }
+  A.reflect3d={ enter(d){ k=d<0?3:0; st.yaw=1.25; st.pitch=-.25; st.moved=false; sx.set(.35); sy.set(.25); show(); },
+    step(){ if(k>=3) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; },
+    tick(dt){ if(!GL||!P.box) return noGL(cv); if(!TX.sky.ready) return; if(!st.moved) st.yaw+=dt*.00008;
+      const gl=GL.gl, R=13, eye=[Math.sin(st.yaw)*Math.cos(st.pitch)*R,-Math.sin(st.pitch)*R,Math.cos(st.yaw)*Math.cos(st.pitch)*R], T=trace(); let VP=null;
+      GL.render(cv,(w,h)=>{ VP=M4.mul(M4.persp(.62,w/h,.1,100),M4.lookAt(eye,[0,0,0],[0,1,0]));
+        GL.bind(0,gl.TEXTURE_CUBE_MAP,TX.sky.t,SM.mip);
+        GL.use(P.box,{uVP:VP,uB:B,uCube:0,uCam:eye,uOnly:[0,0,0],uAlpha:1}); GL.draw(MESH.cube);
+        GL.use(P.flat,{uMVP:M4.mul(VP,M4.S(B)),uColor:[.42,.42,.47,1]}); GL.draw(MESH.edges);
+        GL.use(P.env,{uModel:M4.id(),uVP:VP,uCube:0,uCam:eye,uMode:0,uIOR:1}); GL.draw(MESH.sphere);
+        // the sampled face, when it is one of the walls hidden to see in: drawn see-through so the sampled spot shows its texel
+        const f=faceOf(T.look).f; if(k>=3&&V3.dot(f.n,V3.sub(eye,f.n.map(v=>v*B)))>0){ gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+          GL.use(P.box,{uVP:VP,uB:B,uCube:0,uCam:eye,uOnly:f.n,uAlpha:.6}); GL.draw(MESH.cube); gl.depthMask(true); gl.disable(gl.BLEND); } });
+      if(VP) overlay(VP,eye,T); readout(T);
+      cap.textContent=T.miss?"the ray misses the model":["view direction i","normal n","r = reflect(i, n)","texture(skybox, r)"][k]; } };
 })();
 
 /* ---------- refraction: Snell's law ---------- */

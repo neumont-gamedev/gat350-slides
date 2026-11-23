@@ -44,7 +44,7 @@ costs one read per connected student, so a class of 30 uses roughly 1,000–2,00
 
 | Deck | Source pptx | State |
 | --- | --- | --- |
-| `gat350-texture-mapping` | `GAT350 - Texture Mapping.pptx` | Done, 37 slides, live |
+| `gat350-texture-mapping` | `GAT350 - Texture Mapping.pptx` | Done, 38 slides, live |
 | `gat350-normal-mapping` | `GAT350 - Normal Mapping.pptx` | Built, 18 slides, not pushed yet |
 
 Not converted yet (all in the Presentations folder): Computer Displays, Framebuffer, Graphics

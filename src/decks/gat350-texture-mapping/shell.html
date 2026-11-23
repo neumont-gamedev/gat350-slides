@@ -755,6 +755,26 @@
     </div>
   </section>
 
+  <!-- 30b reflection in 3D: follow the view ray off the model to the cube -->
+  <section class="slide" data-id="reflect3d">
+    <div class="two" style="grid-template-columns:.8fr 1.2fr;gap:40px">
+      <div class="stack" style="gap:16px">
+        <h2 class="rise" style="--i:0"><span class="n">ENVIRONMENT MAPPING</span>Following the view ray</h2>
+        <ol class="num steps rise" style="--i:1;font-size:20px" id="r3Steps">
+          <li>The camera looks at a point on the model: the view direction <b style="color:var(--blue)">i</b>.</li>
+          <li>The surface <b style="color:var(--green)">normal n</b> at that point.</li>
+          <li><code>r = reflect(i, n)</code> bounces off toward the cube.</li>
+          <li>The cubemap only uses the <b class="y">direction</b> of r, as if it starts at the cube’s center. That picks a face and a texel: the color of this pixel.</li>
+        </ol>
+        <div class="card readout rise" style="--i:2;font-size:16px" id="r3Read"></div>
+        <div class="ctl rise" style="--i:3"><span>aim left/right</span><input type="range" id="r3X" min="-1" max="1" step=".01" value=".35"><output id="r3XO"></output></div>
+        <div class="ctl rise" style="--i:3"><span>aim up/down</span><input type="range" id="r3Y" min="-1" max="1" step=".01" value=".25"><output id="r3YO"></output></div>
+        <div class="hint rise" style="--i:4">→ follows the ray · drag to orbit</div>
+      </div>
+      <div class="stage-box rise grabbable" style="--i:2"><canvas id="r3Cv"></canvas><div class="cap" id="r3Cap"></div></div>
+    </div>
+  </section>
+
   <!-- 31 reflection shader -->
   <section class="slide" data-id="reflshader">
     <h2 class="rise" style="--i:0"><span class="n">HLSL · VERTEX SHADER</span>Reflection shader</h2>
