@@ -777,7 +777,8 @@
         <div class="acts rise" style="--i:2" id="rrMats"></div>
         <div class="card readout rise" style="--i:3" id="rrRead"></div>
         <div class="acts rise" style="--i:3"><button class="btn sm" id="rrSwap">light leaves the material</button></div>
-        <div class="hint rise" style="--i:3">click a material · drag the ray</div>
+        <div class="callout rise" style="--i:4">HLSL has it built in: <code>float3 t = refract(i, n, n₁ / n₂);</code> If the ray can’t get out (total internal reflection), it returns <code>(0, 0, 0)</code>.</div>
+        <div class="hint rise" style="--i:4">click a material · drag the ray</div>
       </div>
       <div class="stage-box rise" style="--i:2"><svg id="rrSvg" viewBox="0 0 760 620"></svg></div>
     </div>
