@@ -440,7 +440,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 8:25 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 10:02 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -776,6 +776,7 @@ const SRC={
       if(uBug==2) c=pow(c,vec3(2.2));          // sampled through an sRGB format
       vec3 n = uBug==3 ? c : c*2.-1.;          // forgot to decode
       vec3 N=Ng; if(uUseNrm==1) N = uBug==4 ? normalize(n) : normalize(mat3(T,B,Ng)*n);
+      if(uUseNrm==1 && uBug==5){ vec3 vz=normalize(uCam), vx=normalize(cross(vec3(0,1,0),vz)); N=normalize(mat3(vx,cross(vz,vx),vz)*n); }   // n taken as view space: +z = out of the screen
       if(uShow==1){ o=vec4(N*.5+.5,1.); return; }
       vec3 alb=uUseAlb==1?texture(uAlb,vUV).rgb:vec3(.78);
       vec3 L=normalize(uLight-vW), V=normalize(uCam-vW), H=normalize(L+V);
@@ -918,8 +919,8 @@ A.layers=(()=>{ const cv=$("lyCv"), st=orbit(cv,{yaw:0,pitch:-.15}); const on={a
       const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],alb:on.alb,nrm:on.nrm,show:on.show}); lightDot(cv,VP,L); } }; })();
 
 /* ---------- why tangent space ---------- */
-A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:.75,pitch:-.3},{minP:-.8,maxP:.8}); let mode="raw", show=0, blend=0;   // start off-axis so world +Z arrows read as parallel
-  const TIP={raw:`<span class="k">map normal used as a world normal</span>A flat spot in the map is <b>(0, 0, 1)</b>, so every arrow points the same way, at <b>world +Z</b>, wherever the surface faces. Only the middle looks right, and the bumps light up from the wrong side.`,
+A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:.75,pitch:-.3},{minP:-.8,maxP:.8}); let mode="raw", show=0, blend=0;
+  const TIP={raw:`<span class="k">map normal used as a world normal</span>A flat spot in the map is <b>(0, 0, 1)</b>, so every arrow points the same way, <b>straight out of the screen</b>, wherever the surface faces. Only the middle looks right, the bumps light up from the wrong side, and the lighting changes when you turn the model.`,
     tbn:`<span class="k">rotated by the TBN matrix</span>Each pixel’s map normal is rotated to follow <b>its own</b> surface. The same <b>(0, 0, 1)</b> now points straight out of the sphere, so the whole model lights correctly.`};
   const setM=tabs($("wyMode"),k=>{ mode=k; $("wyTip").innerHTML=TIP[k]; }); setM("raw"); $("wyTip").innerHTML=TIP.raw;
   toggle($("wyShow"),v=>show=+v);
@@ -928,14 +929,16 @@ A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:.75,pitch:-.3},{minP:-.8,maxP:
   for(let i=6;i<=d.la-6;i+=6){ const step=Math.max(6,Math.round(8/Math.sin(i/d.la*Math.PI))); for(let j=(i/6%2)*step/2|0;j<d.lo;j+=step) S.push(i*(d.lo+1)+j); }
   return { tick(dt){ const eye=eyeOf(st,3.4), L=[2.6,1.3,1.2];
     blend+=((mode==="tbn"?1:0)-blend)*Math.min(1,(dt||16)/140);   // ease the arrows between the two answers
-    const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],bug:mode==="raw"?4:0,show}); lightDot(cv,VP,L);
+    const VP=litScene(cv,{mesh:"sphere",eye,light:L,tiling:[3,1.5],bug:mode==="raw"?5:0,show}); lightDot(cv,VP,L);
+    const vz=V3.norm(eye);   // the camera looks at the origin, so +z out of the screen is the eye direction
     $("wyCap").textContent=mode==="raw"?"N = normalize(n)   ✗":"N = normalize(mul(n, TBN))   ✓";
     if(!VP) return; const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, s=.3;
     S.forEach(k=>{ const p=g(d.pos,k,3), Ns=g(d.nrm,k,3); if(V3.dot(Ns,V3.sub(eye,p))<.12) return;   // front of the sphere only
-      // map normal (0,0,1): as-is it is world +Z; through TBN it becomes the surface normal
-      const n=V3.norm([Ns[0]*blend,Ns[1]*blend,Ns[2]*blend+(1-blend)]);
+      // map normal (0,0,1): as-is it points out of the screen; through TBN it becomes the surface normal
+      const n=V3.norm([0,1,2].map(i=>Ns[i]*blend+vz[i]*(1-blend)));
       const o=toScreen(VP,p,W,H), q=toScreen(VP,[p[0]+n[0]*s,p[1]+n[1]*s,p[2]+n[2]*s],W,H);
-      dot(x,o[0],o[1],3,Y); arrow2d(x,o[0],o[1],q[0],q[1],BLUE,2.5,9); }); } }; })();
+      if(blend<.98){ x.globalAlpha=1-blend; x.strokeStyle=BLUE; x.lineWidth=2; x.beginPath(); x.arc(o[0],o[1],8,0,6.284); x.stroke(); x.globalAlpha=1; }   // ⊙ = pointing at you
+      dot(x,o[0],o[1],3,Y); if(Math.hypot(q[0]-o[0],q[1]-o[1])>9) arrow2d(x,o[0],o[1],q[0],q[1],BLUE,2.5,9); }); } }; })();
 
 /* ---------- frame: T B N at vertices ---------- */
 A.frame=(()=>{ const cv=$("frCv"), st=orbit(cv,{yaw:.5,pitch:-.35}); let mouse=null, pick=null;
