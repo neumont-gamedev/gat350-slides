@@ -613,6 +613,16 @@ codeTips($("rvCode"),$("rvTip"),[
   [21,21,"The normal MVP transform for the position."]
 ],"<span class='k'>reflection.vert.hlsl</span>Hover a line. The fragment shader is the same as the skybox’s: sample the cubemap with TexCoord.");
 
+codeTips($("rrCode"),$("rrTip"),[
+  [1,8,"<span class='k'>b0 · space1</span>The same matrices and camera position as the reflection shader, plus one new value."],
+  [7,7,"<span class='k'>IOR</span>The material’s index of refraction: 1.33 for water, 1.52 for glass, 2.42 for diamond. Push it with the other vertex uniforms."],
+  [12,12,"Vertex position in <b>world space</b>."],
+  [13,13,"Normal in world space, exactly as in the reflection shader."],
+  [14,14,"The incident vector <b>i</b>: from the camera to this vertex."],
+  [16,17,"<span class='k'>the one changed line</span><b>refract</b> bends i through the surface instead of bouncing it. Its third argument is the <b class='y'>ratio</b> n₁ / n₂: from air (1.0) into the material, so <code>1.0 / IOR</code>. The result is the direction to look up in the cubemap."],
+  [18,18,"The normal MVP transform for the position."]
+],"<span class='k'>refraction.vert.hlsl</span>Same as reflection, with one line changed. Hover a line. The fragment shader is still the skybox’s: sample the cubemap with TexCoord.");
+
 /* ---------- filtering: nearest vs linear, see which texels each pixel reads ---------- */
 (() => {
   const cv=$("fiCv"), TW=64, TH=48; let T=null, mode="n", zoom=1, grid=false, hover=null, dirty=true, off=null;

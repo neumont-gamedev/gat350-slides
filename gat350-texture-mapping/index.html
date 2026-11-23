@@ -792,8 +792,8 @@
     <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:28px;margin-top:22px">
       <pre class="src sm rise" style="--i:1" data-code="hRefrV" id="rrCode"></pre>
       <div class="stack rise" style="--i:2;gap:14px">
-        <p style="font-size:20px">Same as reflection, with one line changed. <code>refract</code> takes the <b class="y">ratio</b> n₁ / n₂: from air (1.0) into the material.</p>
-        <figure class="fig" style="height:300px;background:#fff"><img src="img/envmap-refract.png" alt="hand-drawn environment map refraction"></figure>
+        <div class="card tip" id="rrTip" style="min-height:230px"></div>
+        <div class="hint">hover the code</div>
       </div>
     </div>
   </section>
@@ -832,7 +832,7 @@
     </div>
   </section>
 
-  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 8:09 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
+  <div id="chrome"><span class="sp"></span><button class="nbtn" id="prev" aria-label="Previous">←</button><span class="ver" style="font-size:12px;opacity:.6;margin-right:8px">updated Nov 23, 8:17 AM</span><span id="count"></span><button class="nbtn" id="next" aria-label="Next">→</button><button class="nbtn" id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⤢</button></div>
   <div id="progress"></div>
   <div id="livewrap"><span id="liveauth"></span><div id="livebar"></div></div>
   <div id="toast" role="status"></div>
@@ -1667,6 +1667,16 @@ codeTips($("rvCode"),$("rvTip"),[
   [20,20,"<b>reflect</b> bounces i off the normal. The result is the direction to look up in the cubemap. (<code>Output</code> is the same struct as the skybox shader.)"],
   [21,21,"The normal MVP transform for the position."]
 ],"<span class='k'>reflection.vert.hlsl</span>Hover a line. The fragment shader is the same as the skybox’s: sample the cubemap with TexCoord.");
+
+codeTips($("rrCode"),$("rrTip"),[
+  [1,8,"<span class='k'>b0 · space1</span>The same matrices and camera position as the reflection shader, plus one new value."],
+  [7,7,"<span class='k'>IOR</span>The material’s index of refraction: 1.33 for water, 1.52 for glass, 2.42 for diamond. Push it with the other vertex uniforms."],
+  [12,12,"Vertex position in <b>world space</b>."],
+  [13,13,"Normal in world space, exactly as in the reflection shader."],
+  [14,14,"The incident vector <b>i</b>: from the camera to this vertex."],
+  [16,17,"<span class='k'>the one changed line</span><b>refract</b> bends i through the surface instead of bouncing it. Its third argument is the <b class='y'>ratio</b> n₁ / n₂: from air (1.0) into the material, so <code>1.0 / IOR</code>. The result is the direction to look up in the cubemap."],
+  [18,18,"The normal MVP transform for the position."]
+],"<span class='k'>refraction.vert.hlsl</span>Same as reflection, with one line changed. Hover a line. The fragment shader is still the skybox’s: sample the cubemap with TexCoord.");
 
 /* ---------- filtering: nearest vs linear, see which texels each pixel reads ---------- */
 (() => {
