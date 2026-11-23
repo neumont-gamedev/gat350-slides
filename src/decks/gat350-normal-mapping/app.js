@@ -369,6 +369,13 @@ A.why=(()=>{ const cv=$("wyCv"), st=orbit(cv,{yaw:0,pitch:0},{minP:-.8,maxP:.8})
     const vz=V3.norm(eye), vx=V3.norm(V3.cross([0,1,0],vz)), vy=V3.cross(vz,vx);
     $("wyCap").textContent=mode==="raw"?"N = normalize(n)   ✗":"N = normalize(mul(n, TBN))   ✓";
     if(!VP) return; const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, s=.3, c0=toScreen(VP,[0,0,0],W,H), c1=toScreen(VP,vx,W,H), px=Math.hypot(c1[0]-c0[0],c1[1]-c0[1])*s;
+    // world axes gizmo, bottom right: turns with the camera (drawn back to front; an axis aimed at you shows as ⊙)
+    { const gx=W-78, gy=H-78, gl=46; x.fillStyle="rgba(255,255,255,.04)"; x.beginPath(); x.arc(gx,gy,gl+18,0,6.284); x.fill();
+      [[[1,0,0],RED,"x"],[[0,1,0],GREEN,"y"],[[0,0,1],BLUE,"z"]].map(([e,c,t])=>({c,t,sx:V3.dot(e,vx),sy:-V3.dot(e,vy),z:V3.dot(e,vz)})).sort((a,b)=>a.z-b.z).forEach(({c,t,sx,sy,z})=>{
+        x.globalAlpha=z<-.2?.45:1; const ex=gx+sx*gl, ey=gy+sy*gl, len=Math.hypot(sx,sy);
+        if(len>.2) arrow2d(x,gx,gy,ex,ey,c,3,10);
+        if(z>.8){ x.strokeStyle=c; x.lineWidth=2; x.beginPath(); x.arc(gx,gy,9,0,6.284); x.stroke(); dot(x,gx,gy,3,c); }
+        const lx=len>.2?gx+sx*(gl+14):gx+12, ly=len>.2?gy+sy*(gl+14)+5:gy-12; label(x,t,lx,ly,c,16,"center"); x.globalAlpha=1; }); }
     S.forEach(k=>{ const p=g(d.pos,k,3), Ns=g(d.nrm,k,3); if(V3.dot(Ns,V3.sub(eye,p))<.12) return;   // front of the sphere only
       // map normal (0,0,1): as-is it is world +Z; through TBN it becomes the surface normal
       const n=V3.norm([Ns[0]*blend,Ns[1]*blend,Ns[2]*blend+(1-blend)]);
