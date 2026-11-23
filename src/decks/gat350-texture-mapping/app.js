@@ -967,9 +967,10 @@ function litDemo(cv,opt){
 
 /* ---------- reflection in 3D: follow the view ray off the model to the cube ---------- */
 (() => {
-  const cv=$("r3Cv"), cap=$("r3Cap"), read=$("r3Read"), lis=[...$("r3Steps").children], B=2.6, E=[0,.45,2.05];   // cube half-size, the camera in the scene
+  const cv=$("r3Cv"), cap=$("r3Cap"), read=$("r3Read"), lis=[...$("r3Steps").children], E=[0,.45,2.05]; let B=2.6;   // the camera in the scene, cube half-size
   const st=orbit(cv,{yaw:1.25,pitch:-.25},{k:.006}); let k=0, aim=[.35,.25], last="";
-  const sx=slider("r3X",v=>fx(v),v=>aim[0]=v), sy=slider("r3Y",v=>fx(v),v=>aim[1]=v);
+  const sx=slider("r3X",v=>fx(v),v=>aim[0]=v), sy=slider("r3Y",v=>fx(v),v=>aim[1]=v), sb=slider("r3B",v=>(v/1).toFixed(1)+"×",v=>B=v);
+  $("r3Size").addEventListener("pointerdown",e=>e.stopPropagation());   // dragging the slider should not orbit
   // colors for the readout swatch, read from the same cross image the cubemap is built from
   let sky=null; whenLoaded(IM.sky,()=>{ try{ const c=document.createElement("canvas"); c.width=IM.sky.naturalWidth; c.height=IM.sky.naturalHeight; const x=c.getContext("2d"); x.drawImage(IM.sky,0,0); sky={d:x.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height}; }catch(e){} });
   function skyCol(q){ if(!sky) return "#888"; const W=Math.floor(sky.w/4), H=Math.floor(sky.h/3), px=Math.min(W-1,Math.floor(q.px*W))+q.f.cell[0]*W, py=Math.min(H-1,Math.floor(q.py*H))+q.f.cell[1]*H, i=(py*sky.w+px)*4; return `rgb(${sky.d[i]},${sky.d[i+1]},${sky.d[i+2]})`; }
@@ -982,8 +983,9 @@ function litDemo(cv,opt){
   function show(){ lis.forEach((l,i)=>{ l.classList.toggle("on",i===k); l.classList.toggle("done",i<k); }); last=""; }
   function readout(T){ const v=a=>`(${a.map(n=>fx(n)).join(", ")})`, dash=`<span class="muted">—</span>`, q=faceOf(T.look);
     const sw=`<span style="display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-3px;background:${skyCol(q)};border:1px solid rgba(255,255,255,.3)"></span> <b>${q.f.axis} ${q.f.name}</b> · layer ${q.f.layer} · (${q.px.toFixed(2)}, ${q.py.toFixed(2)})`;
-    const L=T.miss?[`<span style="color:var(--blue)">i = ${v(T.d)}</span>`,`<span class="muted">misses the model: sees the sky directly</span>`,dash,k>=3?sw:dash]
-      :[`<span style="color:var(--blue)">i = ${v(T.d)}</span>`,k>=1?`<span style="color:var(--green)">n = ${v(T.n)}</span>`:dash,k>=2?`<span style="color:var(--y)">r = ${v(T.r)}</span>`:dash,k>=3?sw:dash];
+    const L=T.miss?[`<span style="color:var(--blue)">i = ${v(T.d)}</span>`,`<span class="muted">misses the model: sees the sky directly</span>`,dash,k>=3?sw:dash,dash]
+      :[`<span style="color:var(--blue)">i = ${v(T.d)}</span>`,k>=1?`<span style="color:var(--green)">n = ${v(T.n)}</span>`:dash,k>=2?`<span style="color:var(--y)">r = ${v(T.r)}</span>`:dash,k>=3?sw:dash,
+        k>=3?`<span class="muted">real hit ↔ sample: ${Math.hypot(...V3.sub(T.Q,T.C)).toFixed(2)} apart, ${(Math.hypot(...V3.sub(T.Q,T.C))/(2*B)*100).toFixed(0)}% of a wall</span>`:dash];
     const h=L.join("<br>"); if(h!==last){ read.innerHTML=h; last=h; } }
   function overlay(VP,eye,T){ const x=ctxOf(cv), W=cv.offsetWidth, H=cv.offsetHeight, m=VP;
     const S=p=>{ const X=m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12], Yc=m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13], w=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15]; return [(X/w*.5+.5)*W,(.5-Yc/w*.5)*H]; };
@@ -1001,16 +1003,16 @@ function litDemo(cv,opt){
     if(T.miss){ ray(E,T.Q,BLUE,4); tag(lerp3(E,T.Q,.5),"i",BLUE); ring(T.Q,BLUE); }
     else { ray(E,T.P,BLUE,4); tag(lerp3(E,T.P,.55),"i",BLUE); const sp=S(T.P); dot(x,sp[0],sp[1],5,INK);
       if(k>=1){ ray(T.P,add(T.P,sc(T.n,1.1)),GREEN,4); tag(add(T.P,sc(T.n,1.1)),"n",GREEN); }
-      if(k>=2){ ray(T.P,T.Q,Y,4); tag(lerp3(T.P,T.Q,.6),"r",Y); ring(T.Q,k>=3?MUTE:Y); } }
+      if(k>=2){ ray(T.P,T.Q,Y,4); tag(lerp3(T.P,T.Q,.45),k>=3?"r · real hit":"r",Y,-14,0); ring(T.Q,k>=3?MUTE:Y); } }
     if(k>=3){ const q=faceOf(T.look), f=q.f, c=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v])=>S([0,1,2].map(i=>(f.n[i]+f.r[i]*u+f.u[i]*v)*B)));
       x.fillStyle="rgba(255,194,14,.08)"; x.strokeStyle=Y; x.lineWidth=2.5; x.beginPath(); c.forEach((p,i)=>i?x.lineTo(...p):x.moveTo(...p)); x.closePath(); x.fill(); x.stroke();
-      ray([0,0,0],T.C,AMBER,3,[8,8]); ring(T.C,Y,13); tag(T.C,"sampled",Y); }
+      ray([0,0,0],T.C,AMBER,3,[8,8]); tag(lerp3([0,0,0],T.C,.75),T.miss?"same direction":"same r, from the center",AMBER,16,8); ring(T.C,Y,13); tag(T.C,"sampled",Y); }
   }
-  A.reflect3d={ enter(d){ k=d<0?3:0; st.yaw=1.25; st.pitch=-.25; st.moved=false; sx.set(.35); sy.set(.25); show(); },
+  A.reflect3d={ enter(d){ k=d<0?3:0; st.yaw=1.25; st.pitch=-.25; st.moved=false; sx.set(.35); sy.set(.25); sb.set(2.6); show(); },
     step(){ if(k>=3) return false; k++; show(); return true; }, back(){ if(k<=0) return false; k--; show(); return true; },
     tick(dt){ if(!GL||!P.box) return noGL(cv); if(!TX.sky.ready) return; if(!st.moved) st.yaw+=dt*.00008;
-      const gl=GL.gl, R=13, eye=[Math.sin(st.yaw)*Math.cos(st.pitch)*R,-Math.sin(st.pitch)*R,Math.cos(st.yaw)*Math.cos(st.pitch)*R], T=trace(); let VP=null;
-      GL.render(cv,(w,h)=>{ VP=M4.mul(M4.persp(.62,w/h,.1,100),M4.lookAt(eye,[0,0,0],[0,1,0]));
+      const gl=GL.gl, R=B*5, eye=[Math.sin(st.yaw)*Math.cos(st.pitch)*R,-Math.sin(st.pitch)*R,Math.cos(st.yaw)*Math.cos(st.pitch)*R], T=trace(); let VP=null;
+      GL.render(cv,(w,h)=>{ VP=M4.mul(M4.persp(.62,w/h,.1,400),M4.lookAt(eye,[0,0,0],[0,1,0]));
         GL.bind(0,gl.TEXTURE_CUBE_MAP,TX.sky.t,SM.mip);
         GL.use(P.box,{uVP:VP,uB:B,uCube:0,uCam:eye,uOnly:[0,0,0],uAlpha:1}); GL.draw(MESH.cube);
         GL.use(P.flat,{uMVP:M4.mul(VP,M4.S(B)),uColor:[.42,.42,.47,1]}); GL.draw(MESH.edges);
